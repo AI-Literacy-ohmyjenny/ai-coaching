@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교사 관리자 페이지 - AI 문해력 논술 코칭</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
+            background: #FCF9F2;
+            min-height: 100vh;
+            padding: 24px;
+            position: relative;
+            overflow-x: hidden;
+            color: #1A1A1A;
+        }
+
+        /* 배경 장식 제거 */
+        .cloud {
+            display: none;
+        }
+
+        /* 헤더 */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 40px;
+            color: #1B2B48;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 17px;
+            color: #666666;
+            font-weight: 400;
+        }
+
+        /* 메인 컨테이너 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 카드 스타일 */
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            border: 1px solid #E8E4DB;
+        }
+
+        .card h2 {
+            font-size: 26px;
+            color: #1B2B48;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        /* 필터 버튼 그룹 */
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'Pretendard', sans-serif;
+            border: 1.5px solid #D5D0C7;
+            border-radius: 10px;
+            background: #FCF9F2;
+            color: #1B2B48;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            background: #EDE8DE;
+            border-color: #1B2B48;
+        }
+
+        .filter-btn.active {
+            background: #1B2B48;
+            color: #ffffff;
+            border-color: #1B2B48;
+        }
+
+        /* 통계 카드 — 전체 통계 박스: 남색 배경 + 흰 글씨 */
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: #1B2B48;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            flex: 1;
+            min-width: 160px;
+        }
+
+        /* 점수 숫자 박스: 아이보리 배경 + 검정 글씨 */
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1A1A1A;
+            background: #FCF9F2;
+            border-radius: 8px;
+            padding: 8px 16px;
+            display: inline-block;
+            margin-bottom: 10px;
+            min-width: 80px;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        /* 학생 글 목록 */
+        .essay-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .essay-item {
+            background: #FCF9F2;
+            border: 1.5px solid #E8E4DB;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 14px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .essay-item:hover {
+            border-color: #1B2B48;
+            box-shadow: 0 4px 14px rgba(27, 43, 72, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .essay-item .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #E8E4DB;
+            color: #1B2B48;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .essay-item .student-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .essay-item .student-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1B2B48;
+        }
+
+        .essay-item .date {
+            font-size: 13px;
+            color: #666666;
+        }
+
+        .essay-item .essay-text {
+            font-size: 15px;
+            color: #1A1A1A;
+            line-height: 1.7;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #E8E4DB;
+        }
+
+        .essay-item .scores {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* 점수 칩: 아이보리 배경 + 검정 글씨 */
+        .score-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: #FCF9F2;
+            border: 1.5px solid #D5D0C7;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .score-chip .score-label {
+            color: #666666;
+        }
+
+        .score-chip .score-value {
+            font-weight: 700;
+            color: #1A1A1A;
+            font-size: 15px;
+        }
+
+        .essay-item .ai-feedback {
+            margin-top: 12px;
+            padding: 12px;
+            background: #E8F5E9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #2E7D32;
+            line-height: 1.6;
+        }
+
+        /* 버튼 스타일 */
+        .btn {
+            padding: 11px 22px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'Pretendard', sans-serif;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #1B2B48;
+            color: white;
+            box-shadow: none;
+        }
+
+        .btn-primary:hover {
+            background: #243859;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            background: #12203A;
+            transform: translateY(0);
+        }
+
+        .refresh-btn {
+            margin-bottom: 20px;
+        }
+
+        /* 로딩 상태 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666666;
+            font-size: 17px;
+        }
+
+        /* 빈 상태 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666666;
+        }
+
+        .empty-state .icon {
+            font-size: 60px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            font-size: 17px;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #FCF9F2;
+            border-radius: 16px;
+            max-width: 1400px;
+            width: 100%;
+            max-height: 95vh;
+            overflow-y: auto;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+            position: relative;
+        }
+
+        .modal-header {
+            background: #1B2B48;
+            color: white;
+            padding: 24px 32px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            font-size: 22px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.28);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 32px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .comparison-panel {
+            background: #ffffff;
+            border: 1.5px solid #E8E4DB;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .comparison-panel h4 {
+            font-size: 20px;
+            color: #1B2B48;
+            margin-bottom: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .comparison-panel .content {
+            font-size: 16px;
+            line-height: 2;
+            color: #1A1A1A;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 18px;
+            background: #FCF9F2;
+            border-radius: 8px;
+            min-height: 250px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #E8E4DB;
+        }
+
+        .full-width-panel {
+            grid-column: 1 / -1;
+            margin-top: 16px;
+        }
+
+        .full-width-panel .content {
+            min-height: 150px;
+            max-height: 300px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: #666666;
+            font-weight: 600;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+
+        .comparison-panel.student .content {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .comparison-panel.ai .content {
+            border-left: 4px solid #2196F3;
+        }
+
+        /* 편집 영역 */
+        .edit-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1.5px solid #E8E4DB;
+        }
+
+        .edit-section h4 {
+            font-size: 18px;
+            color: #1B2B48;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .feedback-editor {
+            width: 100%;
+            min-height: 250px;
+            padding: 18px;
+            font-size: 16px;
+            font-family: 'Pretendard', 'Malgun Gothic', system-ui, sans-serif;
+            border: 1.5px solid #D5D0C7;
+            border-radius: 10px;
+            background: #ffffff;
+            resize: vertical;
+            line-height: 2;
+            color: #1A1A1A;
+        }
+
+        .feedback-editor:focus {
+            outline: none;
+            border-color: #1B2B48;
+            box-shadow: 0 0 0 3px rgba(27, 43, 72, 0.1);
+        }
+
+        .edit-hint {
+            font-size: 13px;
+            color: #666666;
+            margin-top: 8px;
+            margin-bottom: 14px;
+        }
+
+        .modal-footer {
+            padding: 24px 32px;
+            border-top: 1.5px solid #E8E4DB;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #FCF9F2;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .btn-secondary {
+            background: #FCF9F2;
+            color: #1B2B48;
+            border: 1.5px solid #D5D0C7;
+        }
+
+        .btn-secondary:hover {
+            background: #EDE8DE;
+            border-color: #1B2B48;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 30px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .essay-item .student-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <div class="header">
+        <h1>📊 교사 관리자 페이지</h1>
+        <p>학생들의 문해력 논술 코칭 현황을 확인하세요</p>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="container">
+        <!-- 통계 카드 -->
+        <div class="card">
+            <h2>📈 전체 통계</h2>
+            
+            <!-- 필터 버튼 (첫 번째 줄) -->
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterEssays('all')" id="filterAll">
+                    📝 총 제출 글 (<span id="countAll">0</span>)
+                </button>
+                <button class="filter-btn" onclick="filterEssays('ai_drafted')" id="filterDrafted">
+                    🔍 검수 대기 중 (<span id="countDrafted">0</span>)
+                </button>
+                <button class="filter-btn" onclick="filterEssays('completed')" id="filterCompleted">
+                    ✅ 검수 완료 (<span id="countCompleted">0</span>)
+                </button>
+            </div>
+
+            <!-- 평균 점수 카드 (두 번째 줄) -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="number" id="avgVocabulary">0</div>
+                    <div class="label">평균 어휘 점수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="avgGrammar">0</div>
+                    <div class="label">평균 문법 점수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="avgEmpathy">0</div>
+                    <div class="label">평균 공감도 점수</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생 글 목록 -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="listTitle">📝 전체 글 목록</h2>
+                <button class="btn btn-primary refresh-btn" onclick="loadEssays()">🔄 새로고침</button>
+            </div>
+            <div id="essayList" class="essay-list">
+                <div class="loading">데이터를 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 검수 모달 -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 검수하기</h3>
+                <button class="modal-close" onclick="closeReviewModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- 동적으로 채워짐 -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeReviewModal()">닫기</button>
+                <button class="btn btn-primary btn-approve" onclick="approveAndSend()">✅ 최종 승인 및 전송</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ======================================================
+        // API 기본 URL: 로컬이면 127.0.0.1:5000, 배포 시엔 상대경로('')
+        // ======================================================
+        const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+            ? 'http://127.0.0.1:5000'
+            : '';
+
+        // 전역 변수
+        let allEssaysData = [];
+        let currentFilter = 'all';
+
+        // 페이지 로드 시 자동으로 데이터 불러오기
+        window.addEventListener('DOMContentLoaded', () => {
+            loadEssays();
+        });
+
+        /**
+         * 서버에서 schema.json 데이터를 불러와 화면에 표시
+         */
+        async function loadEssays() {
+            const essayListDiv = document.getElementById('essayList');
+            essayListDiv.innerHTML = '<div class="loading">데이터를 불러오는 중...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/essays`);
+                if (!response.ok) {
+                    throw new Error('데이터를 불러오는데 실패했습니다.');
+                }
+
+                const data = await response.json();
+                const rawEssays = data.essays || [];
+
+                // 최신순 정렬: submitted_at → created_at 기준 내림차순
+                rawEssays.sort((a, b) => {
+                    const dateA = new Date(a.student_essay?.submitted_at || a.metadata?.created_at || 0);
+                    const dateB = new Date(b.student_essay?.submitted_at || b.metadata?.created_at || 0);
+                    return dateB - dateA;
+                });
+                allEssaysData = rawEssays;
+
+                // 통계 업데이트 (전체 데이터 기준)
+                updateAllStats(allEssaysData);
+
+                // 현재 필터에 맞게 표시
+                filterEssays(currentFilter);
+
+            } catch (error) {
+                essayListDiv.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⚠️</div>
+                        <p>오류가 발생했습니다: ${error.message}</p>
+                    </div>
+                `;
+                console.error('데이터 로드 오류:', error);
+            }
+        }
+
+        /**
+         * 필터에 따라 글 목록 표시
+         */
+        function filterEssays(status) {
+            currentFilter = status;
+            
+            // 필터 버튼 활성화 상태 업데이트
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            if (status === 'all') {
+                document.getElementById('filterAll').classList.add('active');
+                document.getElementById('listTitle').textContent = '📝 전체 글 목록';
+            } else if (status === 'ai_drafted') {
+                document.getElementById('filterDrafted').classList.add('active');
+                document.getElementById('listTitle').textContent = '🔍 검수 대기 목록';
+            } else if (status === 'completed') {
+                document.getElementById('filterCompleted').classList.add('active');
+                document.getElementById('listTitle').textContent = '✅ 검수 완료 목록';
+            }
+
+            // 필터링
+            let filteredEssays = allEssaysData;
+            if (status !== 'all') {
+                filteredEssays = allEssaysData.filter(essay => {
+                    const essayStatus = essay.process?.status || '';
+                    return essayStatus === status;
+                });
+            }
+
+            // 통계 업데이트 (필터링된 데이터 기준)
+            updateStats(filteredEssays);
+
+            // 글 목록 표시
+            const essayListDiv = document.getElementById('essayList');
+            if (filteredEssays.length === 0) {
+                essayListDiv.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>표시할 글이 없습니다.</p>
+                    </div>
+                `;
+            } else {
+                // 전역 변수로 저장 (모달에서 사용)
+                window.essaysData = filteredEssays;
+                
+                essayListDiv.innerHTML = filteredEssays.map((essay, index) => {
+                    const studentAnswer = essay.student_essay?.student_answer || '내용 없음';
+                    const scores = essay.evaluation?.dimensions || {};
+                    const status = essay.process?.status || '';
+                    const submittedAt = essay.student_essay?.submitted_at || essay.metadata?.created_at || '';
+                    const dateStr = submittedAt ? new Date(submittedAt).toLocaleString('ko-KR') : '날짜 없음';
+                    
+                    let statusBadge = '';
+                    if (status === 'ai_drafted') {
+                        statusBadge = '<div class="status-badge">🔍 검수 대기</div>';
+                    } else if (status === 'completed') {
+                        statusBadge = '<div class="status-badge" style="background: #E8F5E9; color: #2E7D32;">✅ 검수 완료</div>';
+                    }
+                    // 첫 번째(가장 최신) 항목에 NEW 뱃지 표시
+                    const newBadge = index === 0 ? '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#FFD369; color:#3B2E00; border-radius:6px; font-size:11px; font-weight:700; vertical-align:middle;">NEW</span>' : '';
+
+                        const studentReportSent = essay.report_status?.student_sent || false;
+                        const parentReportSent = essay.report_status?.parent_sent || false;
+                        
+                        return `
+                            <div class="essay-item" data-essay-index="${index}">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <div style="flex: 1; cursor: pointer;" onclick="openReviewModal(${index})">
+                                        ${statusBadge}
+                                        <div class="student-info">
+                                            <div class="student-name">학생 글 #${index + 1}${newBadge}</div>
+                                            <div class="date">${dateStr}</div>
+                                        </div>
+                                    </div>
+                                    ${status === 'completed' ? `
+                                    <div style="display: flex; gap: 8px; flex-direction: column;">
+                                        <button class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;" 
+                                                onclick="event.stopPropagation(); sendReport('${essay.process?.process_id || ''}', 'student')"
+                                                ${studentReportSent ? 'disabled style="opacity: 0.6;"' : ''}>
+                                            ${studentReportSent ? '✅ 학생 리포트 발송됨' : '📧 학생 리포트 발송'}
+                                        </button>
+                                        <button class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;" 
+                                                onclick="event.stopPropagation(); sendReport('${essay.process?.process_id || ''}', 'parent')"
+                                                ${parentReportSent ? 'disabled style="opacity: 0.6;"' : ''}>
+                                            ${parentReportSent ? '✅ 학부모 리포트 발송됨' : '📧 학부모 리포트 발송'}
+                                        </button>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                <div style="cursor: pointer;" onclick="openReviewModal(${index})">
+                                    <div class="essay-text">${escapeHtml(studentAnswer.substring(0, 150))}${studentAnswer.length > 150 ? '...' : ''}</div>
+                                    <div class="scores">
+                                        <div class="score-chip">
+                                            <span class="score-label">어휘</span>
+                                            <span class="score-value">${scores.vocabulary?.value || 0}/5</span>
+                                        </div>
+                                        <div class="score-chip">
+                                            <span class="score-label">문법</span>
+                                            <span class="score-value">${scores.grammar?.value || 0}/5</span>
+                                        </div>
+                                        <div class="score-chip">
+                                            <span class="score-label">논리</span>
+                                            <span class="score-value">${scores.logic?.value || 0}/5</span>
+                                        </div>
+                                        <div class="score-chip">
+                                            <span class="score-label">공감도</span>
+                                            <span class="score-value">${scores.empathy?.value || 0}/5</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                }).join('');
+            }
+        }
+
+        /**
+         * 전체 통계 업데이트 (필터 버튼 카운트)
+         */
+        function updateAllStats(essays) {
+            const total = essays.length;
+            const drafted = essays.filter(e => (e.process?.status || '') === 'ai_drafted').length;
+            const completed = essays.filter(e => (e.process?.status || '') === 'completed').length;
+
+            document.getElementById('countAll').textContent = total;
+            document.getElementById('countDrafted').textContent = drafted;
+            document.getElementById('countCompleted').textContent = completed;
+        }
+
+        /**
+         * 필터링된 데이터 기준 통계 업데이트 (평균 점수)
+         */
+        function updateStats(essays) {
+            if (essays.length === 0) {
+                document.getElementById('avgVocabulary').textContent = '0';
+                document.getElementById('avgGrammar').textContent = '0';
+                document.getElementById('avgEmpathy').textContent = '0';
+                return;
+            }
+
+            // 평균 점수 계산
+            const avgVocabulary = essays.reduce((sum, e) => {
+                return sum + (e.evaluation?.dimensions?.vocabulary?.value || 0);
+            }, 0) / essays.length;
+
+            const avgGrammar = essays.reduce((sum, e) => {
+                return sum + (e.evaluation?.dimensions?.grammar?.value || 0);
+            }, 0) / essays.length;
+
+            const avgEmpathy = essays.reduce((sum, e) => {
+                return sum + (e.evaluation?.dimensions?.empathy?.value || 0);
+            }, 0) / essays.length;
+
+            document.getElementById('avgVocabulary').textContent = avgVocabulary.toFixed(1);
+            document.getElementById('avgGrammar').textContent = avgGrammar.toFixed(1);
+            document.getElementById('avgEmpathy').textContent = avgEmpathy.toFixed(1);
+        }
+
+        /**
+         * HTML 이스케이프 (XSS 방지)
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 현재 검수 중인 essay 인덱스 저장
+        let currentReviewIndex = null;
+
+        /**
+         * 검수 모달 열기
+         */
+        function openReviewModal(index) {
+            if (!window.essaysData || !window.essaysData[index]) {
+                alert('데이터를 불러올 수 없습니다.');
+                return;
+            }
+
+            currentReviewIndex = index;
+            const essay = window.essaysData[index];
+            const studentAnswer = essay.student_essay?.student_answer || '내용 없음';
+            const aiFeedback = essay.ai_feedback?.ai_draft_feedback || '피드백 없음';
+            const achievementExplanation = essay.ai_feedback?.achievement_explanation || '성취기준 설명 없음';
+            const revisedText = essay.ai_feedback?.revised_text || '수정본 없음';
+            const processId = essay.process?.process_id || '';
+            const submittedAt = essay.student_essay?.submitted_at || essay.metadata?.created_at || '';
+            const dateStr = submittedAt ? new Date(submittedAt).toLocaleString('ko-KR') : '날짜 없음';
+
+            const modal = document.getElementById('reviewModal');
+            const modalBody = modal.querySelector('.modal-body');
+            
+            modalBody.innerHTML = `
+                <div class="comparison-grid">
+                    <div class="comparison-panel student">
+                        <h4>👤 학생의 원문</h4>
+                        <div class="content">${escapeHtml(studentAnswer)}</div>
+                    </div>
+                    <div class="comparison-panel ai">
+                        <h4>✨ AI 추천 수정본</h4>
+                        <div class="content">${escapeHtml(revisedText)}</div>
+                    </div>
+                </div>
+                <div class="comparison-panel full-width-panel">
+                    <h4>📋 AI가 제안한 피드백 (3단 구성)</h4>
+                    <div class="content">${escapeHtml(aiFeedback)}</div>
+                </div>
+                <div class="comparison-panel full-width-panel">
+                    <h4>📚 성취기준 기반 평가 근거</h4>
+                    <div class="content">${escapeHtml(achievementExplanation)}</div>
+                </div>
+                <div style="text-align: center; color: #8D6E63; font-size: 14px; margin-top: 16px; margin-bottom: 16px;">
+                    제출일: ${dateStr}
+                </div>
+                <div class="edit-section">
+                    <h4>✏️ 글 첨삭 피드백</h4>
+                    <p class="edit-hint">AI가 제안한 피드백을 검토하고 필요시 수정한 후, 최종 승인 버튼을 눌러주세요.</p>
+                    <textarea id="feedbackEditor" class="feedback-editor" placeholder="글 첨삭 피드백을 입력하세요...">${escapeHtml(aiFeedback)}</textarea>
+                </div>
+                <div class="edit-section">
+                    <h4>💬 수업 참여 피드백</h4>
+                    <p class="edit-hint">학생의 수업 참여도와 태도에 대한 피드백을 작성해주세요.</p>
+                    <textarea id="lessonFeedbackEditor" class="feedback-editor" placeholder="수업 참여 피드백을 입력하세요...">${escapeHtml(essay.lesson_feedback || '')}</textarea>
+                </div>
+            `;
+
+            // process_id를 모달에 저장 (나중에 업데이트 시 사용)
+            modal.setAttribute('data-process-id', processId);
+            modal.classList.add('active');
+        }
+
+        /**
+         * 검수 모달 닫기
+         */
+        function closeReviewModal() {
+            const modal = document.getElementById('reviewModal');
+            modal.classList.remove('active');
+            currentReviewIndex = null;
+        }
+
+        /**
+         * 최종 승인 및 전송
+         */
+        async function approveAndSend() {
+            if (currentReviewIndex === null) {
+                alert('검수할 항목이 선택되지 않았습니다.');
+                return;
+            }
+
+            const modal = document.getElementById('reviewModal');
+            const feedbackEditor = document.getElementById('feedbackEditor');
+            const processId = modal.getAttribute('data-process-id');
+
+            if (!feedbackEditor) {
+                alert('피드백 편집창을 찾을 수 없습니다.');
+                return;
+            }
+
+            const lessonFeedbackEditor = document.getElementById('lessonFeedbackEditor');
+            const finalFeedback = feedbackEditor.value.trim();
+            const lessonFeedback = lessonFeedbackEditor ? lessonFeedbackEditor.value.trim() : '';
+
+            if (!finalFeedback) {
+                alert('글 첨삭 피드백을 입력해주세요.');
+                return;
+            }
+
+            // 확인 대화상자
+            if (!confirm('최종 승인하시겠습니까? 승인 후 상태가 "completed"로 변경됩니다.')) {
+                return;
+            }
+
+            // 버튼 비활성화 및 로딩 표시
+            const approveBtn = document.querySelector('.btn-approve');
+            const originalText = approveBtn.textContent;
+            approveBtn.disabled = true;
+            approveBtn.textContent = '처리 중...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/essays/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        process_id: processId,
+                        final_feedback: finalFeedback,
+                        lesson_feedback: lessonFeedback
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '승인 처리에 실패했습니다.');
+                }
+
+                const result = await response.json();
+                alert('✅ 승인 완료! 피드백이 저장되었습니다.');
+                
+                // 모달 닫기 및 목록 새로고침
+                closeReviewModal();
+                loadEssays();
+            } catch (error) {
+                alert('오류가 발생했습니다: ' + error.message);
+                console.error('승인 오류:', error);
+            } finally {
+                approveBtn.disabled = false;
+                approveBtn.textContent = originalText;
+            }
+        }
+
+        /**
+         * 리포트 발송
+         */
+        async function sendReport(processId, reportType) {
+            if (!processId) {
+                alert('process_id가 없습니다.');
+                return;
+            }
+
+            const reportTypeName = reportType === 'student' ? '학생' : '학부모';
+            if (!confirm(`${reportTypeName} 리포트를 발송하시겠습니까?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/essays/send-report`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        process_id: processId,
+                        report_type: reportType
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '리포트 발송에 실패했습니다.');
+                }
+
+                const result = await response.json();
+                alert(`✅ ${reportTypeName} 리포트가 발송되었습니다!`);
+                loadEssays();
+
+            } catch (error) {
+                alert('오류가 발생했습니다: ' + error.message);
+                console.error('리포트 발송 오류:', error);
+            }
+        }
+
+        // 모달 배경 클릭 시 닫기
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('reviewModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeReviewModal();
+                    }
+                });
+            }
+
+            // ESC 키로 모달 닫기
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeReviewModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+

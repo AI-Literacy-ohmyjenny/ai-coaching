@@ -1,0 +1,285 @@
+{
+  "paragraph": [
+    {
+      "paragraph_txt": "저의 취미는 그림 그리기 입니다.#@문장구분# 그림 그리는건 잘 못 그리지만 그냥 연필로 쓱싹쓱싹 하는게 재밌습니다.#@문장구분# 가가지고 싶은 취미가 있다면 공부하기 입니다.#@문장구분# 집에서는 계속 노는데 공부도 좀해야 될것같아서 노력 중입니다#@문장구분#.  친구들과 노는것도 취미입니다.#@문장구분# 마리모물 갈아주기랑 말랑이 만지기(?) 휴대폰하기 만들기 하기 중고장터에 물건팔기 연필깍기 방정리하기 수학문제 풀기 책정리하기(학교교과서) 택배 뜯기 얼음 먹기 침대에 누워있기 글씨 쓰기 물감 칠하기 팝잇 만지기 마리모 보기등 아주 많습니다.#@문장구분# 특히 저는 애견키우기에 관심이 많아 유튜브를 보면서 배우고 있습니다.#@문장구분# 제가 좋아하는 많은 취미들을 어른이 되어서도 하고 싶습니다.#@문장구분# 앞으로도 다양하고 새로운 여러가지 취미들을 찾아보고 (운동, 요리) 노력하는 성실한 사람이 되기위해 노력 하겠습니다.#@문장구분# 저는 제빵에 관심히 많이 있어서 어른이 돼면 제빵사를 하고 싶습니다.#@문장구분#",
+      "paragraph_len": 651,
+      "paragraph_id": "001"
+    }
+  ],
+  "score": {
+    "paragraph_score": [
+      {
+        "paragraph_scoreT": [
+          2,
+          2,
+          2
+        ],
+        "paragraph_scoreT_detail": {
+          "paragraph_scoreT_exp": [
+            [
+              2,
+              2,
+              0
+            ],
+            [
+              2,
+              2,
+              0
+            ],
+            [
+              2,
+              2,
+              0
+            ]
+          ]
+        },
+        "paragraph_scoreT_avg": 2,
+        "paragraph_id": "001"
+      }
+    ],
+    "essay_scoreT": [
+      21.933334,
+      18,
+      20.333334
+    ],
+    "essay_scoreT_avg": 20.08889,
+    "essay_scoreT_detail": {
+      "essay_scoreT_org": [
+        [
+          2,
+          0,
+          0,
+          3
+        ],
+        [
+          1,
+          0,
+          0,
+          1
+        ],
+        [
+          2,
+          0,
+          0,
+          3
+        ]
+      ],
+      "essay_scoreT_cont": [
+        [
+          3,
+          2,
+          0,
+          2
+        ],
+        [
+          2,
+          2,
+          0,
+          2
+        ],
+        [
+          2,
+          2,
+          0,
+          2
+        ]
+      ],
+      "essay_scoreT_exp": [
+        [
+          2,
+          2,
+          0
+        ],
+        [
+          2,
+          2,
+          0
+        ],
+        [
+          2,
+          2,
+          0
+        ]
+      ]
+    }
+  },
+  "student": {
+    "date": "2021.09.02",
+    "student_educated": true,
+    "student_grade": "초등_5학년",
+    "location": "032",
+    "student_grade_group": "초등",
+    "student_reading": 1
+  },
+  "rubric": {
+    "essay_grade": "초등_5학년",
+    "organization_weight": {
+      "org_paragraph": 0,
+      "org": 2,
+      "org_essay": 5,
+      "org_coherence": 0,
+      "org_quantity": 1
+    },
+    "essay_type": "설명글",
+    "content_weight": {
+      "con_clearance": 4,
+      "con_novelty": 4,
+      "con": 4,
+      "con_prompt": 0,
+      "con_description": 2
+    },
+    "essay_main_subject": "나의 취미",
+    "expression_weight": {
+      "exp_style": 0,
+      "exp_grammar": 4,
+      "exp_vocab": 3,
+      "exp": 4
+    }
+  },
+  "correction": [
+    {
+      "sentence_corr_txt_grammar": "저의 취미는 그림 그리기입니다.",
+      "sentence_corr_reason": [
+        "띄어쓰기 교정 필요"
+      ],
+      "sentence_id": "0001",
+      "sentence_annotation_tag": "주제",
+      "sentence_corr_type": [
+        "문법"
+      ],
+      "sentence_corr_detail_type": [
+        "맞춤법"
+      ],
+      "sentence_txt": "저의 취미는 그림 <문법_맞춤법>그리기 입니다.</문법_맞춤법>",
+      "sentence_corr_txt_styling": "",
+      "paragraph_id": "001"
+    },
+    {
+      "sentence_corr_txt_grammar": " 그림 그리는건 잘 못 그리지만 그냥 연필로 쓱싹쓱싹하는 게 재밌습니다.",
+      "sentence_corr_reason": [
+        "띄어쓰기 교정 필요"
+      ],
+      "sentence_id": "0002",
+      "sentence_annotation_tag": "근거",
+      "sentence_corr_type": [
+        "문법"
+      ],
+      "sentence_corr_detail_type": [
+        "맞춤법"
+      ],
+      "sentence_txt": " 그림 그리는건 잘 못 그리지만 그냥 연필로<문법_맞춤법> 쓱싹쓱싹 하는게</문법_맞춤법> 재밌습니다.",
+      "sentence_corr_txt_styling": "",
+      "paragraph_id": "001"
+    },
+    {
+      "sentence_corr_txt_grammar": " 집에서는 계속 노는데 공부도 좀 해야 될 것 같아서 노력 중입니다",
+      "sentence_corr_reason": [
+        "띄어쓰기 교정 필요"
+      ],
+      "sentence_id": "0004",
+      "sentence_annotation_tag": "근거",
+      "sentence_corr_type": [
+        "문법"
+      ],
+      "sentence_corr_detail_type": [
+        "맞춤법"
+      ],
+      "sentence_txt": " 집에서는 계속 노는데 공부도 <문법_맞춤법>좀해야 될것같아서</문법_맞춤법> 노력 중입니다",
+      "sentence_corr_txt_styling": "",
+      "paragraph_id": "001"
+    },
+    {
+      "sentence_corr_txt_grammar": ".  친구들과 노는 것도 취미입니다.",
+      "sentence_corr_reason": [
+        "띄어쓰기 교정 필요"
+      ],
+      "sentence_id": "0005",
+      "sentence_annotation_tag": "근거",
+      "sentence_corr_type": [
+        "문법"
+      ],
+      "sentence_corr_detail_type": [
+        "맞춤법"
+      ],
+      "sentence_txt": ".  친구들과 <문법_맞춤법>노는것도 </문법_맞춤법>취미입니다.",
+      "sentence_corr_txt_styling": "",
+      "paragraph_id": "001"
+    },
+    {
+      "sentence_corr_txt_grammar": " 마리모 물 갈아주기랑 말랑이 만지기(?) 휴대폰 하기 만들기 하기 중고장터에 물건 팔기 연필깍기 방 정리하기 수학 문제 풀기 책 정리하기(학교교과서) 택배 뜯기 얼음 먹기 침대에 누워있기 글씨 쓰기 물감 칠하기 팝잇 만지기 마리모 보기등 아주 많습니다.",
+      "sentence_corr_reason": [
+        "띄어쓰기 교정 필요"
+      ],
+      "sentence_id": "0006",
+      "sentence_annotation_tag": "근거",
+      "sentence_corr_type": [
+        "문법"
+      ],
+      "sentence_corr_detail_type": [
+        "맞춤법"
+      ],
+      "sentence_txt": " <문법_맞춤법>마리모물</문법_맞춤법> 갈아주기랑 말랑이 만지기(?) 휴대폰하기 만들기 하기 중고장터에 물건팔기 연필깍기 방정리하기 수학문제 풀기 책정리하기(학교교과서) 택배 뜯기 얼음 먹기 침대에 누워있기 글씨 쓰기 물감 칠하기 팝잇 만지기 마리모 보기등 아주 많습니다.",
+      "sentence_corr_txt_styling": "",
+      "paragraph_id": "001"
+    },
+    {
+      "sentence_corr_txt_grammar": " 특히 저는 애견 키우기에 관심이 많아 유튜브를 보면서 배우고 있습니다.",
+      "sentence_corr_reason": [
+        "띄어쓰기 교정 필요"
+      ],
+      "sentence_id": "0007",
+      "sentence_annotation_tag": "근거",
+      "sentence_corr_type": [
+        "문법"
+      ],
+      "sentence_corr_detail_type": [
+        "맞춤법"
+      ],
+      "sentence_txt": " 특히 저는 <문법_맞춤법>애견키우기에</문법_맞춤법> 관심이 많아 유튜브를 보면서 배우고 있습니다.",
+      "sentence_corr_txt_styling": "",
+      "paragraph_id": "001"
+    },
+    {
+      "sentence_corr_txt_grammar": " 앞으로도 다양하고 새로운 여러 가지 취미들을 찾아보고 (운동, 요리) 노력하는 성실한 사람이 되기위해 노력 하겠습니다.",
+      "sentence_corr_reason": [
+        "띄어쓰기 교정 필요"
+      ],
+      "sentence_id": "0009",
+      "sentence_annotation_tag": "근거",
+      "sentence_corr_type": [
+        "문법"
+      ],
+      "sentence_corr_detail_type": [
+        "맞춤법"
+      ],
+      "sentence_txt": " 앞으로도 다양하고 새로운 <문법_맞춤법>여러가지</문법_맞춤법> 취미들을 찾아보고 (운동, 요리) 노력하는 성실한 사람이 되기위해 노력 하겠습니다.",
+      "sentence_corr_txt_styling": "",
+      "paragraph_id": "001"
+    },
+    {
+      "sentence_corr_txt_grammar": " 저는 제빵에 관심히 많이 있어서 어른이 되면 제빵사를 하고 싶습니다.",
+      "sentence_corr_reason": [
+        "맞춤법 교정 필요"
+      ],
+      "sentence_id": "0010",
+      "sentence_annotation_tag": "근거",
+      "sentence_corr_type": [
+        "문법"
+      ],
+      "sentence_corr_detail_type": [
+        "맞춤법"
+      ],
+      "sentence_txt": " 저는 제빵에 관심히 많이 있어서 어른이 <문법_맞춤법>돼면</문법_맞춤법> 제빵사를 하고 싶습니다.",
+      "sentence_corr_txt_styling": "",
+      "paragraph_id": "001"
+    }
+  ],
+  "info": {
+    "essay_id": "ESSAY_32672",
+    "essay_prompt": " 세상에는 다양한 취미활동이 있습니다. 축구, 농구, 그림 그리기, 게임, 독서 등등 정말 다양하지요.\r\n\r\n 여러분은 어떤 취미를 가지고 계시는가요? 여러분의 취미를 알려주시고 그 취미에 관해 설명해주세요. 취미를 하는 방법이나 취미의 역사나 대회 같은 것도 같이 설명해주세요.\r\n\r\n 없으면 만들고 싶은 취미나 해보고 싶은 것을 작성해주셔도 좋아요. 누군가와 함께 하고 싶은 취미도 좋답니다.",
+    "essay_type": "설명글",
+    "essay_level": "3",
+    "essay_len": 452,
+    "essay_main_subject": "나의 취미"
+  }
+}

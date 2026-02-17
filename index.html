@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 문해력 논술 코칭</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
+            background: #FCF9F2;
+            min-height: 100vh;
+            height: 100vh;
+            padding: 16px 24px;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            color: #2C3E2D;
+            font-size: 18px;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 배경 장식 제거 */
+        .cloud, .star { display: none; }
+
+        /* 헤더 */
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #91C788;
+            font-weight: 800;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 15px;
+            color: #6A8F65;
+            font-weight: 500;
+        }
+
+        /* 메인 컨테이너 */
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        /* 메뉴 버튼 — 슬림화 + 아이콘 좌측 */
+        .menu-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+
+        .menu-btn {
+            background: #ffffff;
+            border: 2px solid #C8E6C4;
+            border-radius: 20px;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            box-shadow: 0 2px 8px rgba(145, 199, 136, 0.1);
+            text-align: left;
+        }
+
+        .menu-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(145, 199, 136, 0.25);
+            border-color: #91C788;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.99);
+        }
+
+        .menu-btn .icon {
+            font-size: 36px;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        .menu-btn .menu-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-btn .title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #91C788;
+            margin-bottom: 2px;
+        }
+
+        .menu-btn .desc {
+            font-size: 13px;
+            color: #7A9577;
+            line-height: 1.4;
+        }
+
+        /* 섹션 */
+        .section {
+            display: none;
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 24px 28px 20px;
+            box-shadow: 0 4px 16px rgba(145, 199, 136, 0.12);
+            border: 1.5px solid #DFF2DA;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .section.active {
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.35s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 글쓰기 섹션 */
+        .writing-section h2 {
+            font-size: 22px;
+            color: #91C788;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .input-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 16px 18px;
+            font-size: 17px;
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            border: 2px solid #C8E6C4;
+            border-radius: 16px;
+            resize: none;
+            flex: 1;
+            min-height: 0;
+            line-height: 1.6;
+            background-color: #FCF9F2;
+            outline: none;
+            color: #2C3E2D;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        textarea:focus {
+            border-color: #91C788;
+            box-shadow: 0 0 0 4px rgba(145, 199, 136, 0.18);
+        }
+
+        /* 제출 버튼 — #FFD369 */
+        .submit-btn {
+            margin-top: 12px;
+            padding: 14px 40px;
+            font-size: 18px;
+            font-family: 'Pretendard', sans-serif;
+            font-weight: 800;
+            background: #FFD369;
+            color: #3B2E00;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            width: 100%;
+            flex-shrink: 0;
+            transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+            box-shadow: 0 4px 14px rgba(255, 211, 105, 0.35);
+            letter-spacing: 0.3px;
+        }
+
+        .submit-btn:hover {
+            background: #F5C542;
+            transform: scale(1.02) translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 211, 105, 0.5);
+        }
+
+        .submit-btn:active {
+            background: #E8B830;
+            transform: scale(0.99) translateY(0);
+            box-shadow: 0 2px 8px rgba(255, 211, 105, 0.3);
+        }
+
+        .result {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            padding: 10px 16px;
+            border-radius: 16px;
+            min-height: 0;
+            line-height: 1.5;
+            flex-shrink: 0;
+        }
+
+        /* 리포트 섹션 */
+        .reports-section h2 {
+            font-size: 30px;
+            color: #91C788;
+            margin-bottom: 24px;
+            text-align: center;
+            font-weight: 800;
+        }
+
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .report-card {
+            background: #FDFFF5;
+            border: 2px solid #C8E6C4;
+            border-radius: 20px;
+            padding: 26px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            box-shadow: 0 2px 8px rgba(145, 199, 136, 0.1);
+        }
+
+        .report-card:hover {
+            transform: scale(1.03) translateY(-2px);
+            box-shadow: 0 10px 28px rgba(145, 199, 136, 0.25);
+            border-color: #91C788;
+        }
+
+        .report-card .date {
+            font-size: 14px;
+            color: #7A9577;
+            margin-bottom: 12px;
+        }
+
+        .report-card .preview {
+            font-size: 17px;
+            color: #2C3E2D;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .report-card .scores-preview {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .score-chip-small {
+            padding: 6px 14px;
+            background: #DFF2DA;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #4A7A44;
+        }
+
+        /* 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(44, 62, 45, 0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: #ffffff;
+            border-radius: 20px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 16px 48px rgba(44, 62, 45, 0.18);
+        }
+
+        .modal-header {
+            background: #91C788;
+            color: white;
+            padding: 26px 32px;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.25);
+            border: none;
+            color: white;
+            font-size: 22px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .modal-body { padding: 32px; }
+
+        .feedback-section { margin-bottom: 32px; }
+
+        .feedback-section h4 {
+            font-size: 20px;
+            color: #91C788;
+            margin-bottom: 14px;
+            font-weight: 800;
+        }
+
+        .feedback-content {
+            background: #FDFFF5;
+            border: 2px solid #C8E6C4;
+            border-radius: 20px;
+            padding: 20px;
+            font-size: 17px;
+            line-height: 1.6;
+            color: #2C3E2D;
+            white-space: pre-wrap;
+        }
+
+        /* 카드 뉴스 */
+        .card-news {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .news-card {
+            background: #F0FAF0;
+            border-radius: 20px;
+            padding: 26px;
+            border: 1.5px solid #C8E6C4;
+        }
+
+        .news-card h5 {
+            font-size: 18px;
+            color: #91C788;
+            margin-bottom: 12px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .news-card .content {
+            font-size: 17px;
+            line-height: 1.6;
+            color: #2C3E2D;
+            white-space: pre-wrap;
+        }
+
+        .revised-text-card {
+            background: #F1FBF2;
+            border-color: #A5D6A7;
+        }
+
+        .revised-text-card h5 { color: #4CAF50; }
+
+        /* 탭 */
+        .report-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #C8E6C4;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Pretendard', sans-serif;
+            color: #7A9577;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: color 0.2s ease, border-color 0.2s ease;
+            border-radius: 0;
+        }
+
+        .tab-btn.active {
+            color: #91C788;
+            border-bottom-color: #91C788;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* 종합 성취도 */
+        .overall-chart {
+            background: #F0FAF0;
+            border-radius: 20px;
+            padding: 26px;
+            margin-top: 20px;
+            border: 1.5px solid #C8E6C4;
+        }
+
+        .overall-chart h5 {
+            font-size: 18px;
+            color: #91C788;
+            margin-bottom: 16px;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .radar-chart {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .radar-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+        }
+
+        .radar-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #C8E6C4;
+            opacity: 0.5;
+        }
+
+        .radar-score {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: 800;
+            color: #91C788;
+        }
+
+        /* 차트 */
+        .charts-section { margin-top: 28px; }
+
+        .chart-container { margin-bottom: 20px; }
+
+        .chart-title {
+            font-size: 16px;
+            color: #6A8F65;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .bar-label {
+            width: 72px;
+            font-size: 15px;
+            color: #7A9577;
+            font-weight: 700;
+        }
+
+        .bar-wrapper {
+            flex: 1;
+            height: 32px;
+            background: #DFF2DA;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: #91C788;
+            border-radius: 20px;
+            transition: width 0.8s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* 빈 상태 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7A9577;
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .empty-state p { font-size: 18px; }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            body { overflow-y: auto; height: auto; }
+            .menu-buttons { grid-template-columns: 1fr; }
+            .reports-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 26px; }
+            .section { flex: none; min-height: 400px; }
+            textarea { min-height: 180px; flex: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <div class="header">
+        <h1>📚 AI 문해력 논술 코칭</h1>
+        <p>재미있게 공부하며 문해력을 키워봐요!</p>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="container">
+        <!-- 메뉴 버튼 -->
+        <div class="menu-buttons">
+            <div class="menu-btn" onclick="showWritingSection()">
+                <div class="icon">📝</div>
+                <div class="menu-text">
+                    <div class="title">글쓰기</div>
+                    <div class="desc">새로운 글을 작성해보세요</div>
+                </div>
+            </div>
+            <div class="menu-btn" onclick="showReportsSection()">
+                <div class="icon">💌</div>
+                <div class="menu-text">
+                    <div class="title">리포트</div>
+                    <div class="desc">선생님의 피드백을 확인하세요</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 글쓰기 섹션 -->
+        <div id="writingSection" class="section">
+            <h2>✏️ 글쓰기</h2>
+            <div class="input-area">
+                <textarea id="textInput" placeholder="지문을 읽고 느낀 점을 작성해주세요..."></textarea>
+                <button class="submit-btn" onclick="submitEssay(event)">제출하기</button>
+                <div id="result" class="result"></div>
+            </div>
+        </div>
+
+        <!-- 리포트 섹션 -->
+        <div id="reportsSection" class="section">
+            <h2>💌 리포트</h2>
+            <div id="reportsList" class="reports-grid">
+                <div class="loading">리포트를 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 리포트 상세 모달 -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📊 리포트 상세</h3>
+                <button class="modal-close" onclick="closeReportModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- 동적으로 채워짐 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // 섹션 전환
+        function showWritingSection() {
+            document.getElementById('writingSection').classList.add('active');
+            document.getElementById('reportsSection').classList.remove('active');
+        }
+
+        function showReportsSection() {
+            document.getElementById('writingSection').classList.remove('active');
+            document.getElementById('reportsSection').classList.add('active');
+            loadReports();
+        }
+
+        // API 기본 URL: 로컬이면 127.0.0.1:5000, 배포 시엔 상대경로('')
+        const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+            ? 'http://127.0.0.1:5000'
+            : '';
+
+        // 리포트 불러오기
+        async function loadReports() {
+            const reportsList = document.getElementById('reportsList');
+            reportsList.innerHTML = '<div class="loading">리포트를 불러오는 중...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/essays`);
+                if (!response.ok) {
+                    throw new Error('리포트를 불러오는데 실패했습니다.');
+                }
+
+                const data = await response.json();
+                const allEssays = data.essays || [];
+
+                // status가 "completed"인 데이터만 필터링
+                const completedEssays = allEssays.filter(essay => {
+                    const status = essay.process?.status || '';
+                    return status === 'completed';
+                });
+
+                // 최신순 정렬: submitted_at → created_at 기준 내림차순
+                completedEssays.sort((a, b) => {
+                    const dateA = new Date(a.student_essay?.submitted_at || a.metadata?.created_at || 0);
+                    const dateB = new Date(b.student_essay?.submitted_at || b.metadata?.created_at || 0);
+                    return dateB - dateA;
+                });
+
+                if (completedEssays.length === 0) {
+                    reportsList.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1 / -1;">
+                            <div class="icon">📭</div>
+                            <p>아직 검수 완료된 리포트가 없습니다.</p>
+                        </div>
+                    `;
+                } else {
+                    window.reportsData = completedEssays;
+                    reportsList.innerHTML = completedEssays.map((essay, index) => {
+                        const studentAnswer = essay.student_essay?.student_answer || '';
+                        const teacherFeedback = essay.teacher_correction?.teacher_final_feedback || essay.ai_feedback?.ai_draft_feedback || '피드백 없음';
+                        const scores = essay.evaluation?.dimensions || {};
+                        const submittedAt = essay.student_essay?.submitted_at || essay.metadata?.created_at || '';
+                        const dateStr = submittedAt ? new Date(submittedAt).toLocaleDateString('ko-KR') : '날짜 없음';
+
+                        return `
+                            <div class="report-card" onclick="openReportModal(${index})">
+                                <div class="date">${dateStr}</div>
+                                <div class="preview">${escapeHtml(studentAnswer.substring(0, 100))}${studentAnswer.length > 100 ? '...' : ''}</div>
+                                <div class="scores-preview">
+                                    <div class="score-chip-small">어휘 ${scores.vocabulary?.value || 0}/5</div>
+                                    <div class="score-chip-small">문법 ${scores.grammar?.value || 0}/5</div>
+                                    <div class="score-chip-small">논리 ${scores.logic?.value || 0}/5</div>
+                                    <div class="score-chip-small">공감도 ${scores.empathy?.value || 0}/5</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                reportsList.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="icon">⚠️</div>
+                        <p>오류가 발생했습니다: ${error.message}</p>
+                    </div>
+                `;
+                console.error('리포트 로드 오류:', error);
+            }
+        }
+
+        // 리포트 상세 모달 열기
+        function openReportModal(index) {
+            if (!window.reportsData || !window.reportsData[index]) {
+                alert('리포트를 불러올 수 없습니다.');
+                return;
+            }
+
+            const essay = window.reportsData[index];
+            const teacherFeedback = essay.teacher_correction?.teacher_final_feedback || essay.ai_feedback?.ai_draft_feedback || '피드백 없음';
+            const scores = essay.evaluation?.dimensions || {};
+            const submittedAt = essay.student_essay?.submitted_at || essay.metadata?.created_at || '';
+            const dateStr = submittedAt ? new Date(submittedAt).toLocaleString('ko-KR') : '날짜 없음';
+
+            const revisedText = essay.ai_feedback?.revised_text || '';
+            const lessonFeedback = essay.lesson_feedback || '';
+            const avgScore = ((scores.vocabulary?.value || 0) + (scores.grammar?.value || 0) + 
+                             (scores.logic?.value || 0) + (scores.empathy?.value || 0)) / 4;
+            
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="report-tabs">
+                    <button class="tab-btn active" onclick="switchTab('student')">👤 학생용 리포트</button>
+                    <button class="tab-btn" onclick="switchTab('parent')">👨‍👩‍👧 학부모용 리포트</button>
+                </div>
+
+                <!-- 학생용 리포트 -->
+                <div id="studentTab" class="tab-content active">
+                    <div class="card-news">
+                        <div class="news-card">
+                            <h5>💬 선생님의 글 첨삭</h5>
+                            <div class="content">${escapeHtml(teacherFeedback)}</div>
+                        </div>
+
+                        ${revisedText ? `
+                        <div class="news-card revised-text-card">
+                            <h5>✨ AI가 다듬은 문장</h5>
+                            <div class="content">${escapeHtml(revisedText)}</div>
+                        </div>
+                        ` : ''}
+
+                        <div class="news-card">
+                            <h5>📊 문해력 점수</h5>
+                            <div class="charts-section" style="margin-top: 0;">
+                                <div class="chart-container">
+                                    <div class="bar-chart">
+                                        <div class="bar-label">어휘</div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-fill" style="width: ${(scores.vocabulary?.value || 0) * 20}%">
+                                                ${scores.vocabulary?.value || 0}/5
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chart-container">
+                                    <div class="bar-chart">
+                                        <div class="bar-label">문법</div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-fill" style="width: ${(scores.grammar?.value || 0) * 20}%">
+                                                ${scores.grammar?.value || 0}/5
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chart-container">
+                                    <div class="bar-chart">
+                                        <div class="bar-label">논리</div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-fill" style="width: ${(scores.logic?.value || 0) * 20}%">
+                                                ${scores.logic?.value || 0}/5
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chart-container">
+                                    <div class="bar-chart">
+                                        <div class="bar-label">공감도</div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-fill" style="width: ${(scores.empathy?.value || 0) * 20}%">
+                                                ${scores.empathy?.value || 0}/5
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 학부모용 리포트 -->
+                <div id="parentTab" class="tab-content">
+                    <div class="card-news">
+                        <div class="news-card">
+                            <h5>💬 선생님의 글 첨삭</h5>
+                            <div class="content">${escapeHtml(teacherFeedback)}</div>
+                        </div>
+
+                        ${lessonFeedback ? `
+                        <div class="news-card">
+                            <h5>🎓 수업 참여 피드백</h5>
+                            <div class="content">${escapeHtml(lessonFeedback)}</div>
+                        </div>
+                        ` : ''}
+
+                        ${revisedText ? `
+                        <div class="news-card revised-text-card">
+                            <h5>✨ AI가 다듬은 문장</h5>
+                            <div class="content">${escapeHtml(revisedText)}</div>
+                        </div>
+                        ` : ''}
+
+                        <div class="news-card">
+                            <h5>📊 문해력 점수</h5>
+                            <div class="charts-section" style="margin-top: 0;">
+                                <div class="chart-container">
+                                    <div class="bar-chart">
+                                        <div class="bar-label">어휘</div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-fill" style="width: ${(scores.vocabulary?.value || 0) * 20}%">
+                                                ${scores.vocabulary?.value || 0}/5
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chart-container">
+                                    <div class="bar-chart">
+                                        <div class="bar-label">문법</div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-fill" style="width: ${(scores.grammar?.value || 0) * 20}%">
+                                                ${scores.grammar?.value || 0}/5
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chart-container">
+                                    <div class="bar-chart">
+                                        <div class="bar-label">논리</div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-fill" style="width: ${(scores.logic?.value || 0) * 20}%">
+                                                ${scores.logic?.value || 0}/5
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chart-container">
+                                    <div class="bar-chart">
+                                        <div class="bar-label">공감도</div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-fill" style="width: ${(scores.empathy?.value || 0) * 20}%">
+                                                ${scores.empathy?.value || 0}/5
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="overall-chart">
+                            <h5>📈 종합 성취도</h5>
+                            <div class="radar-chart">
+                                <div class="radar-container">
+                                    <div class="radar-bg"></div>
+                                    <div class="radar-score">${avgScore.toFixed(1)}</div>
+                                </div>
+                            </div>
+                            <div style="text-align: center; color: #5D4037; font-size: 14px; margin-top: 12px;">
+                                평균 점수: ${avgScore.toFixed(1)} / 5.0
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; color: #8D6E63; font-size: 14px; margin-top: 24px;">
+                    제출일: ${dateStr}
+                </div>
+            `;
+
+            document.getElementById('reportModal').classList.add('active');
+
+            // 차트 애니메이션
+            setTimeout(() => {
+                document.querySelectorAll('.bar-fill').forEach(bar => {
+                    const width = bar.style.width;
+                    bar.style.width = '0%';
+                    setTimeout(() => {
+                        bar.style.width = width;
+                    }, 100);
+                });
+            }, 100);
+        }
+
+        // 리포트 모달 닫기
+        function closeReportModal() {
+            document.getElementById('reportModal').classList.remove('active');
+        }
+
+        // HTML 이스케이프
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 탭 전환
+        function switchTab(tabType) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tabType === 'student') {
+                document.querySelector('.tab-btn[onclick="switchTab(\'student\')"]').classList.add('active');
+                document.getElementById('studentTab').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn[onclick="switchTab(\'parent\')"]').classList.add('active');
+                document.getElementById('parentTab').classList.add('active');
+            }
+        }
+
+        // 모달 배경 클릭 시 닫기
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('reportModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeReportModal();
+                    }
+                });
+            }
+
+            // ESC 키로 모달 닫기
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeReportModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

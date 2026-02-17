@@ -1,0 +1,41 @@
+{
+    "raw_data_info": {
+        "raw_data_name": "6b0e932c-19dc-45e4-b559-e68f461f5d42",
+        "date": "2024-09-11",
+        "publisher": "2차 저작",
+        "publication_year": "2018-03-01",
+        "school": "초등학교",
+        "grade": "5학년",
+        "semester": "2학기",
+        "subject": "국어",
+        "revision_year": "2015"
+    },
+    "source_data_info": {
+        "source_data_name": "S1_초등_5_국어_TXT_012230",
+        "2009_achievement_standard": [
+            " "
+        ],
+        "2015_achievement_standard": [
+            "[6국01-07] 상대가 처한 상황을 이해하고 공감하며 듣는 태도를 지닌다."
+        ],
+        "2022_achievement_standard": [
+            "[9국01-04] 상대의 말을 경청하고 상대의 감정과 입장에 공감하는 반응을 보이며 대화한다."
+        ]
+    },
+    "learning_data_info": {
+        "learning_data_name": "S1_초등_5_국어_TXT_012230",
+        "class_num": 6,
+        "class_name": "텍스트",
+        "bounding_box": [
+            [
+                3.44,
+                4.93,
+                451.44,
+                75.93
+            ]
+        ],
+        "text_description": "자신과 생각이나 처지가 다른 사람과 어떻게 대화해야 할까요?",
+        "text_qa": "누구와 대화하려 하나요?",
+        "text_an": "자신과 생각이나 처지가 다른 사람과 대화하려 해요."
+    }
+}
