@@ -14,7 +14,7 @@ from flask_cors import CORS
 import requests
 
 # -----------------------------------------------------------------------
-# 📋 로깅 설정: 배포 환경에서도 오류 추적이 가능하도록 표준 logging 사용
+# 📋 로깅 설정
 # -----------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
@@ -26,33 +26,113 @@ logger = logging.getLogger(__name__)
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# 교과 성취 기준 파일 경로 (Vercel 배포 시에도 절대경로로 찾을 수 있도록)
+# -----------------------------------------------------------------------
+# 🗄️ Supabase 설정
+# Vercel 환경변수: SUPABASE_URL, SUPABASE_SERVICE_KEY
+# -----------------------------------------------------------------------
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+
+# 교과 성취 기준 파일 경로
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STANDARD_PATH = os.path.join(BASE_DIR, "S1_초등_5_국어_TXT_012230.json")
 
 # -----------------------------------------------------------------------
-# 🔒 Race Condition 방지용 전역 Lock
-# 여러 백그라운드 스레드가 동시에 schema.json을 읽고 쓸 때
-# 데이터가 덮어써지는 것을 막는다.
+# 🔒 로컬 파일 저장용 Lock (로컬 개발 fallback)
 # -----------------------------------------------------------------------
 _schema_lock = threading.Lock()
 
 
 # -----------------------------------------------------------------------
-# 📦 데이터 저장 경로 결정
-# Vercel Serverless: BASE_DIR는 읽기 전용 → /tmp 폴더로 fallback
-# 로컬 개발: BASE_DIR에 직접 schema.json 저장
+# 📦 Supabase REST API 헬퍼
+# -----------------------------------------------------------------------
+def _supabase_headers() -> dict:
+    return {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+
+def _is_supabase_configured() -> bool:
+    return bool(SUPABASE_URL and SUPABASE_SERVICE_KEY)
+
+
+def _supabase_insert(essay_data: dict) -> dict:
+    """essays 테이블에 새 레코드 삽입"""
+    url = f"{SUPABASE_URL}/rest/v1/essays"
+    payload = {
+        "process_id": essay_data["process"]["process_id"],
+        "data": essay_data,  # JSONB 컬럼에 전체 스키마 저장
+    }
+    resp = requests.post(url, headers=_supabase_headers(), json=payload, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _supabase_select_all() -> list:
+    """essays 테이블 전체 조회 (최신순)"""
+    url = f"{SUPABASE_URL}/rest/v1/essays?order=created_at.desc&select=data"
+    resp = requests.get(url, headers=_supabase_headers(), timeout=30)
+    resp.raise_for_status()
+    rows = resp.json()
+    return [row["data"] for row in rows if row.get("data")]
+
+
+def _supabase_update(process_id: str, essay_data: dict) -> None:
+    """process_id로 특정 레코드 업데이트"""
+    url = f"{SUPABASE_URL}/rest/v1/essays?process_id=eq.{process_id}"
+    payload = {"data": essay_data}
+    resp = requests.patch(url, headers=_supabase_headers(), json=payload, timeout=30)
+    resp.raise_for_status()
+
+
+# -----------------------------------------------------------------------
+# 📦 로컬 파일 fallback 헬퍼
 # -----------------------------------------------------------------------
 def get_schema_path() -> str:
-    """schema.json 저장 경로 반환. 쓰기 가능한 디렉터리를 자동 선택."""
     primary = os.path.join(BASE_DIR, "schema.json")
     try:
         with open(primary, "a", encoding="utf-8"):
             pass
         return primary
     except OSError:
-        # Vercel 등 읽기 전용 환경 → /tmp 사용 (재시작 시 초기화됨)
         return "/tmp/schema.json"
+
+
+def _read_essays_locked(out_path: str) -> list:
+    if not os.path.exists(out_path):
+        return []
+    try:
+        with open(out_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else [data]
+    except Exception as e:
+        logger.error(f"schema.json 읽기 실패: {e}")
+        return []
+
+
+def _write_essays_locked(out_path: str, essays: list) -> None:
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(essays, f, ensure_ascii=False, indent=2)
+
+
+def _append_essay_safe(schema: dict) -> None:
+    """
+    Supabase가 설정돼 있으면 Supabase에 저장,
+    아니면 로컬 schema.json에 저장 (개발 환경 fallback).
+    """
+    if _is_supabase_configured():
+        _supabase_insert(schema)
+        logger.info(f"[Supabase 저장] process_id={schema['process']['process_id']}")
+    else:
+        out_path = get_schema_path()
+        with _schema_lock:
+            essays = _read_essays_locked(out_path)
+            essays.append(schema)
+            _write_essays_locked(out_path, essays)
+        logger.info(f"[로컬 저장] process_id={schema['process']['process_id']} → {out_path}")
 
 
 app = Flask(__name__)
@@ -60,30 +140,20 @@ CORS(app)
 
 
 def load_achievement_standard_and_desc(standard_json_path: str):
-    """성취 기준과 지문 설명 로드"""
     with open(standard_json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-
     standards = data.get("source_data_info", {}).get("2015_achievement_standard", [])
     achievement_2015 = " ".join(standards) if standards else ""
     text_description = data.get("learning_data_info", {}).get("text_description", "")
-
     return achievement_2015, text_description
 
 
 def _strip_json_markdown(content: str) -> str:
-    """
-    GPT가 가끔 응답을 ```json ... ``` 으로 감싸서 반환할 때
-    JSON 파싱 실패를 막기 위해 코드블록 마커를 제거한다.
-    """
     content = content.strip()
     if content.startswith("```"):
-        # 첫 줄(```json 또는 ```) 제거
         lines = content.splitlines()
-        # 시작 마커 제거
         if lines[0].startswith("```"):
             lines = lines[1:]
-        # 끝 마커 제거
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         content = "\n".join(lines).strip()
@@ -91,7 +161,6 @@ def _strip_json_markdown(content: str) -> str:
 
 
 def call_openai_for_feedback(student_text: str, achievement_2015: str, text_description: str):
-    """OpenAI에 학생 글을 보내 3단 구성 피드백, 성취기준 설명, 추천 수정본을 JSON 형태로 받아오기"""
     if not OPENAI_API_KEY:
         raise RuntimeError("OPENAI_API_KEY 환경변수가 설정되어 있지 않습니다.")
 
@@ -132,7 +201,6 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
         "Content-Type": "application/json",
         "Authorization": f"Bearer {OPENAI_API_KEY}",
     }
-
     payload = {
         "model": "gpt-4o-mini",
         "messages": [
@@ -148,13 +216,10 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
     data = resp.json()
     raw_content = data["choices"][0]["message"]["content"].strip()
 
-    # 마크다운 코드블록 제거 후 파싱 시도
     content = _strip_json_markdown(raw_content)
-
     try:
         parsed = json.loads(content)
     except json.JSONDecodeError as e:
-        # 원본 응답을 로그에 남겨 디버깅에 활용
         logger.error(
             "OpenAI 응답 JSON 파싱 실패\n"
             f"  파싱 오류: {e}\n"
@@ -166,7 +231,6 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
     achievement_explanation = parsed.get("achievement_explanation", "").strip()
     revised_text = parsed.get("revised_text", "").strip()
     scores = parsed.get("scores", {})
-
     return feedback_text, achievement_explanation, revised_text, scores
 
 
@@ -179,7 +243,6 @@ def build_schema(
     achievement_2015: str,
     text_description: str,
 ):
-    """설계한 schema.json 구조에 맞게 데이터 블록 생성"""
     now_iso = datetime.utcnow().isoformat() + "Z"
     process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
     essay_id = f"ESSAY_{uuid4().hex[:8]}"
@@ -230,43 +293,7 @@ def build_schema(
             "revised_text": revised_text,
         },
     }
-
     return schema
-
-
-# -----------------------------------------------------------------------
-# 🔒 안전한 파일 읽기/쓰기 헬퍼 (Lock 적용)
-# -----------------------------------------------------------------------
-def _read_essays_locked(out_path: str) -> list:
-    """Lock 안에서 schema.json을 읽어 리스트로 반환."""
-    if not os.path.exists(out_path):
-        return []
-    try:
-        with open(out_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, list) else [data]
-    except Exception as e:
-        logger.error(f"schema.json 읽기 실패: {e}")
-        return []
-
-
-def _write_essays_locked(out_path: str, essays: list) -> None:
-    """Lock 안에서 schema.json에 쓴다."""
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(essays, f, ensure_ascii=False, indent=2)
-
-
-def _append_essay_safe(schema: dict) -> None:
-    """
-    Lock을 획득한 뒤 파일을 읽고 → 새 항목 추가 → 다시 쓴다.
-    동시에 여러 스레드가 호출해도 데이터 손실 없음.
-    """
-    out_path = get_schema_path()
-    with _schema_lock:
-        essays = _read_essays_locked(out_path)
-        essays.append(schema)
-        _write_essays_locked(out_path, essays)
-    logger.info(f"[저장 완료] process_id={schema['process']['process_id']} → {out_path} (총 {len(essays)}건)")
 
 
 # -----------------------------------------------------------------------
@@ -275,17 +302,19 @@ def _append_essay_safe(schema: dict) -> None:
 
 @app.route("/admin")
 def admin():
-    """교사 관리자 페이지"""
     return send_from_directory(".", "admin.html")
 
 
 @app.get("/api/essays")
 def get_essays():
-    """schema.json에서 모든 학생 글 데이터를 반환"""
+    """DB(Supabase) 또는 로컬 파일에서 모든 학생 글 데이터를 반환"""
     try:
-        out_path = get_schema_path()
-        with _schema_lock:
-            essays = _read_essays_locked(out_path)
+        if _is_supabase_configured():
+            essays = _supabase_select_all()
+        else:
+            out_path = get_schema_path()
+            with _schema_lock:
+                essays = _read_essays_locked(out_path)
         return jsonify({"essays": essays})
     except Exception as e:
         logger.error(f"GET /api/essays 오류: {e}\n{traceback.format_exc()}")
@@ -305,42 +334,33 @@ def approve_essay():
         if not final_feedback:
             return jsonify({"error": "최종 피드백이 비어있습니다."}), 400
 
-        out_path = get_schema_path()
         now_iso = datetime.utcnow().isoformat() + "Z"
 
-        with _schema_lock:
-            essays = _read_essays_locked(out_path)
-
-            essay_index = next(
-                (i for i, e in enumerate(essays)
-                 if e.get("process", {}).get("process_id") == process_id),
-                None
-            )
-            if essay_index is None:
+        if _is_supabase_configured():
+            # Supabase에서 해당 레코드 조회
+            url = f"{SUPABASE_URL}/rest/v1/essays?process_id=eq.{process_id}&select=data"
+            resp = requests.get(url, headers=_supabase_headers(), timeout=30)
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
                 return jsonify({"error": "해당 process_id를 가진 데이터를 찾을 수 없습니다."}), 404
 
-            essays[essay_index]["process"]["status"] = "completed"
-            essays[essay_index]["process"]["current_step"] = 5
-            essays[essay_index]["metadata"]["updated_at"] = now_iso
-
-            if "teacher_correction" not in essays[essay_index]:
-                essays[essay_index]["teacher_correction"] = {}
-
-            essays[essay_index]["teacher_correction"].update({
-                "teacher_id": "t_001",
-                "corrected_at": now_iso,
-                "teacher_final_feedback": final_feedback,
-                "ai_draft_feedback": essays[essay_index].get("ai_feedback", {}).get("ai_draft_feedback", ""),
-            })
-
-            lesson_feedback = data.get("lesson_feedback", "").strip()
-            essays[essay_index]["lesson_feedback"] = lesson_feedback
-
-            if "ai_feedback" in essays[essay_index]:
-                essays[essay_index]["ai_feedback"]["final_feedback"] = final_feedback
-                essays[essay_index]["ai_feedback"]["approved_at"] = now_iso
-
-            _write_essays_locked(out_path, essays)
+            essay = rows[0]["data"]
+            _apply_approval(essay, final_feedback, data.get("lesson_feedback", ""), now_iso)
+            _supabase_update(process_id, essay)
+        else:
+            out_path = get_schema_path()
+            with _schema_lock:
+                essays = _read_essays_locked(out_path)
+                essay_index = next(
+                    (i for i, e in enumerate(essays)
+                     if e.get("process", {}).get("process_id") == process_id),
+                    None
+                )
+                if essay_index is None:
+                    return jsonify({"error": "해당 process_id를 가진 데이터를 찾을 수 없습니다."}), 404
+                _apply_approval(essays[essay_index], final_feedback, data.get("lesson_feedback", ""), now_iso)
+                _write_essays_locked(out_path, essays)
 
         logger.info(f"[승인 완료] process_id={process_id}")
         return jsonify({"success": True, "message": "승인 완료", "process_id": process_id, "status": "completed"})
@@ -348,6 +368,28 @@ def approve_essay():
     except Exception as e:
         logger.error(f"POST /api/essays/approve 오류: {e}\n{traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
+
+
+def _apply_approval(essay: dict, final_feedback: str, lesson_feedback: str, now_iso: str) -> None:
+    """essay 딕셔너리에 승인 데이터를 in-place로 적용"""
+    essay["process"]["status"] = "completed"
+    essay["process"]["current_step"] = 5
+    essay["metadata"]["updated_at"] = now_iso
+
+    if "teacher_correction" not in essay:
+        essay["teacher_correction"] = {}
+    essay["teacher_correction"].update({
+        "teacher_id": "t_001",
+        "corrected_at": now_iso,
+        "teacher_final_feedback": final_feedback,
+        "ai_draft_feedback": essay.get("ai_feedback", {}).get("ai_draft_feedback", ""),
+    })
+
+    essay["lesson_feedback"] = lesson_feedback.strip()
+
+    if "ai_feedback" in essay:
+        essay["ai_feedback"]["final_feedback"] = final_feedback
+        essay["ai_feedback"]["approved_at"] = now_iso
 
 
 @app.post("/api/essays/send-report")
@@ -363,32 +405,48 @@ def send_report():
         if report_type not in ["student", "parent"]:
             return jsonify({"error": "report_type은 'student' 또는 'parent'여야 합니다."}), 400
 
-        out_path = get_schema_path()
         now_iso = datetime.utcnow().isoformat() + "Z"
 
-        with _schema_lock:
-            essays = _read_essays_locked(out_path)
-
-            essay_index = next(
-                (i for i, e in enumerate(essays)
-                 if e.get("process", {}).get("process_id") == process_id),
-                None
-            )
-            if essay_index is None:
+        if _is_supabase_configured():
+            url = f"{SUPABASE_URL}/rest/v1/essays?process_id=eq.{process_id}&select=data"
+            resp = requests.get(url, headers=_supabase_headers(), timeout=30)
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
                 return jsonify({"error": "해당 process_id를 가진 데이터를 찾을 수 없습니다."}), 404
 
-            if "report_status" not in essays[essay_index]:
-                essays[essay_index]["report_status"] = {}
-
+            essay = rows[0]["data"]
+            if "report_status" not in essay:
+                essay["report_status"] = {}
             if report_type == "student":
-                essays[essay_index]["report_status"]["student_sent"] = True
-                essays[essay_index]["report_status"]["student_sent_at"] = now_iso
+                essay["report_status"]["student_sent"] = True
+                essay["report_status"]["student_sent_at"] = now_iso
             else:
-                essays[essay_index]["report_status"]["parent_sent"] = True
-                essays[essay_index]["report_status"]["parent_sent_at"] = now_iso
-
-            essays[essay_index]["metadata"]["updated_at"] = now_iso
-            _write_essays_locked(out_path, essays)
+                essay["report_status"]["parent_sent"] = True
+                essay["report_status"]["parent_sent_at"] = now_iso
+            essay["metadata"]["updated_at"] = now_iso
+            _supabase_update(process_id, essay)
+        else:
+            out_path = get_schema_path()
+            with _schema_lock:
+                essays = _read_essays_locked(out_path)
+                essay_index = next(
+                    (i for i, e in enumerate(essays)
+                     if e.get("process", {}).get("process_id") == process_id),
+                    None
+                )
+                if essay_index is None:
+                    return jsonify({"error": "해당 process_id를 가진 데이터를 찾을 수 없습니다."}), 404
+                if "report_status" not in essays[essay_index]:
+                    essays[essay_index]["report_status"] = {}
+                if report_type == "student":
+                    essays[essay_index]["report_status"]["student_sent"] = True
+                    essays[essay_index]["report_status"]["student_sent_at"] = now_iso
+                else:
+                    essays[essay_index]["report_status"]["parent_sent"] = True
+                    essays[essay_index]["report_status"]["parent_sent_at"] = now_iso
+                essays[essay_index]["metadata"]["updated_at"] = now_iso
+                _write_essays_locked(out_path, essays)
 
         logger.info(f"[리포트 발송] process_id={process_id} type={report_type}")
         return jsonify({"success": True, "message": f"{report_type} 리포트 발송 완료", "process_id": process_id})
@@ -399,20 +457,15 @@ def send_report():
 
 
 def process_essay_in_background(text: str, process_id: str):
-    """
-    백그라운드 스레드에서 AI 분석 후 schema.json에 저장.
-    _append_essay_safe()가 Lock을 관리하므로 동시 호출에도 안전하다.
-    """
+    """백그라운드 스레드에서 AI 분석 후 DB에 저장"""
     logger.info(f"[백그라운드 시작] process_id={process_id}")
     try:
         achievement_2015, text_description = load_achievement_standard_and_desc(STANDARD_PATH)
-
         feedback_text, achievement_explanation, revised_text, scores = call_openai_for_feedback(
             student_text=text,
             achievement_2015=achievement_2015,
             text_description=text_description,
         )
-
         schema = build_schema(
             student_text=text,
             feedback_text=feedback_text,
@@ -422,13 +475,9 @@ def process_essay_in_background(text: str, process_id: str):
             achievement_2015=achievement_2015,
             text_description=text_description,
         )
-        # /submit에서 미리 생성한 process_id 덮어쓰기
         schema["process"]["process_id"] = process_id
-
         _append_essay_safe(schema)
-
     except Exception as e:
-        # traceback 전체를 로그에 남겨 원인 파악이 가능하도록
         logger.error(
             f"[백그라운드 오류] process_id={process_id}\n"
             f"  오류 유형: {type(e).__name__}: {e}\n"
@@ -465,7 +514,7 @@ def submit():
 
 @app.post("/analyze")
 def analyze():
-    """프런트엔드에서 글을 받아 분석 후 schema.json에 저장 (기존 호환성 유지)"""
+    """프런트엔드에서 글을 받아 분석 후 DB에 저장 (기존 호환성 유지)"""
     try:
         data = request.get_json(force=True)
         text = (data.get("text") or "").strip()
@@ -488,9 +537,7 @@ def analyze():
             achievement_2015=achievement_2015,
             text_description=text_description,
         )
-
         _append_essay_safe(schema)
-
         return jsonify({"success": True, "message": "제출 완료", "process_id": schema["process"]["process_id"]})
 
     except Exception as e:

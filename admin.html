@@ -641,9 +641,12 @@
                     <div class="empty-state">
                         <div class="icon">⚠️</div>
                         <p>오류가 발생했습니다: ${error.message}</p>
+                        <p style="font-size:13px; color:#999; margin-top:8px;">API 주소: ${window.API_BASE}/api/essays</p>
+                        <p style="font-size:13px; color:#999;">콘솔(F12)에서 자세한 오류를 확인하세요.</p>
                     </div>
                 `;
                 console.error('데이터 로드 오류:', error);
+                console.error('요청 URL:', `${window.API_BASE}/api/essays`);
             }
         }
 
