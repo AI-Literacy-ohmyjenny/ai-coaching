@@ -6,19 +6,16 @@
       "use": "@vercel/python"
     },
     {
-      "src": "*.html",
+      "src": "index.html",
       "use": "@vercel/static"
     },
     {
-      "src": "*.js",
+      "src": "admin.html",
       "use": "@vercel/static"
     },
     {
-      "src": "*.json",
-      "use": "@vercel/static",
-      "config": {
-        "excludeFiles": ["schema.json", "package*.json"]
-      }
+      "src": "script.js",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -39,12 +36,12 @@
       "dest": "/admin.html"
     },
     {
-      "src": "/",
-      "dest": "/index.html"
-    },
-    {
       "src": "/script.js",
       "dest": "/script.js"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
     }
   ]
 }

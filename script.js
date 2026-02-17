@@ -1,11 +1,7 @@
-// API 기본 URL: 로컬이면 127.0.0.1:5000, 배포 시엔 상대경로('')
-const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://127.0.0.1:5000'
-    : '';
-
 /**
  * 학생이 글을 제출하는 함수
  * 서버로 전송하고, 서버에서 AI가 초안 피드백을 생성하여 schema.json에 저장
+ * API_BASE는 각 HTML 파일의 인라인 스크립트에서 window.API_BASE로 주입됩니다.
  */
 async function submitEssay(event) {
     const textInput = document.getElementById('textInput');
@@ -30,7 +26,7 @@ async function submitEssay(event) {
     try {
         // 서버의 /submit 엔드포인트로 제출
         // 서버에서 AI가 즉시 초안 피드백을 생성하고 schema.json에 status: "ai_drafted"로 저장
-        const response = await fetch(`${API_BASE}/submit`, {
+        const response = await fetch(`${window.API_BASE}/submit`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

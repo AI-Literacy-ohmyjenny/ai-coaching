@@ -619,6 +619,12 @@
         </div>
     </div>
 
+    <!-- API_BASE를 script.js보다 먼저 주입 (중복 const 선언 오류 방지) -->
+    <script>
+        window.API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+            ? 'http://127.0.0.1:5000'
+            : '';
+    </script>
     <script src="script.js"></script>
     <script>
         // 섹션 전환
@@ -633,18 +639,13 @@
             loadReports();
         }
 
-        // API 기본 URL: 로컬이면 127.0.0.1:5000, 배포 시엔 상대경로('')
-        const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : '';
-
         // 리포트 불러오기
         async function loadReports() {
             const reportsList = document.getElementById('reportsList');
             reportsList.innerHTML = '<div class="loading">리포트를 불러오는 중...</div>';
 
             try {
-                const response = await fetch(`${API_BASE}/api/essays`);
+                const response = await fetch(`${window.API_BASE}/api/essays`);
                 if (!response.ok) {
                     throw new Error('리포트를 불러오는데 실패했습니다.');
                 }

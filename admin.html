@@ -593,7 +593,7 @@
         // ======================================================
         // API 기본 URL: 로컬이면 127.0.0.1:5000, 배포 시엔 상대경로('')
         // ======================================================
-        const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+        window.API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
             ? 'http://127.0.0.1:5000'
             : '';
 
@@ -614,7 +614,7 @@
             essayListDiv.innerHTML = '<div class="loading">데이터를 불러오는 중...</div>';
 
             try {
-                const response = await fetch(`${API_BASE}/api/essays`);
+                const response = await fetch(`${window.API_BASE}/api/essays`);
                 if (!response.ok) {
                     throw new Error('데이터를 불러오는데 실패했습니다.');
                 }
@@ -925,7 +925,7 @@
             approveBtn.textContent = '처리 중...';
 
             try {
-                const response = await fetch(`${API_BASE}/api/essays/approve`, {
+                const response = await fetch(`${window.API_BASE}/api/essays/approve`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -972,7 +972,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/api/essays/send-report`, {
+                const response = await fetch(`${window.API_BASE}/api/essays/send-report`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
