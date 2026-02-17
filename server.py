@@ -305,20 +305,6 @@ def admin():
     return send_from_directory(".", "admin.html")
 
 
-@app.get("/api/debug")
-def debug_env():
-    """환경변수 설정 상태 진단 (배포 후 확인용)"""
-    sb_url = os.getenv("SUPABASE_URL", "")
-    sb_key = os.getenv("SUPABASE_SERVICE_KEY", "")
-    return jsonify({
-        "supabase_url_set": bool(sb_url),
-        "supabase_url_preview": sb_url[:30] + "..." if sb_url else "(없음)",
-        "supabase_key_set": bool(sb_key),
-        "supabase_key_preview": sb_key[:12] + "..." if sb_key else "(없음)",
-        "openai_key_set": bool(os.getenv("OPENAI_API_KEY")),
-        "is_supabase_configured": _is_supabase_configured(),
-    })
-
 
 @app.get("/api/essays")
 def get_essays():
