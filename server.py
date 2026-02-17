@@ -1,6 +1,8 @@
 import os
 import json
 import threading
+import traceback
+import logging
 from datetime import datetime
 from uuid import uuid4
 
@@ -11,12 +13,30 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import requests
 
+# -----------------------------------------------------------------------
+# 📋 로깅 설정: 배포 환경에서도 오류 추적이 가능하도록 표준 logging 사용
+# -----------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname)s %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # 환경 변수에 OpenAI API Key 설정
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # 교과 성취 기준 파일 경로 (Vercel 배포 시에도 절대경로로 찾을 수 있도록)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STANDARD_PATH = os.path.join(BASE_DIR, "S1_초등_5_국어_TXT_012230.json")
+
+# -----------------------------------------------------------------------
+# 🔒 Race Condition 방지용 전역 Lock
+# 여러 백그라운드 스레드가 동시에 schema.json을 읽고 쓸 때
+# 데이터가 덮어써지는 것을 막는다.
+# -----------------------------------------------------------------------
+_schema_lock = threading.Lock()
+
 
 # -----------------------------------------------------------------------
 # 📦 데이터 저장 경로 결정
@@ -26,17 +46,17 @@ STANDARD_PATH = os.path.join(BASE_DIR, "S1_초등_5_국어_TXT_012230.json")
 def get_schema_path() -> str:
     """schema.json 저장 경로 반환. 쓰기 가능한 디렉터리를 자동 선택."""
     primary = os.path.join(BASE_DIR, "schema.json")
-    # 쓰기 테스트
     try:
         with open(primary, "a", encoding="utf-8"):
             pass
         return primary
     except OSError:
-        # Vercel 등 읽기 전용 환경 → /tmp 사용
+        # Vercel 등 읽기 전용 환경 → /tmp 사용 (재시작 시 초기화됨)
         return "/tmp/schema.json"
 
+
 app = Flask(__name__)
-CORS(app)  # CORS 허용 (브라우저 차단 문제 해결)
+CORS(app)
 
 
 def load_achievement_standard_and_desc(standard_json_path: str):
@@ -51,6 +71,25 @@ def load_achievement_standard_and_desc(standard_json_path: str):
     return achievement_2015, text_description
 
 
+def _strip_json_markdown(content: str) -> str:
+    """
+    GPT가 가끔 응답을 ```json ... ``` 으로 감싸서 반환할 때
+    JSON 파싱 실패를 막기 위해 코드블록 마커를 제거한다.
+    """
+    content = content.strip()
+    if content.startswith("```"):
+        # 첫 줄(```json 또는 ```) 제거
+        lines = content.splitlines()
+        # 시작 마커 제거
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        # 끝 마커 제거
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        content = "\n".join(lines).strip()
+    return content
+
+
 def call_openai_for_feedback(student_text: str, achievement_2015: str, text_description: str):
     """OpenAI에 학생 글을 보내 3단 구성 피드백, 성취기준 설명, 추천 수정본을 JSON 형태로 받아오기"""
     if not OPENAI_API_KEY:
@@ -60,7 +99,8 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
         "당신은 초등학교 5학년 국어 수업을 돕는 전문적인 AI 보조교사입니다. "
         "다음 성취 기준을 정확히 이해하고 학생 글을 평가하세요.\n\n"
         f"- 성취 기준: {achievement_2015}\n\n"
-        "출력은 반드시 아래 JSON 형식의 한 개 객체로만 답하세요.\n"
+        "출력은 반드시 아래 JSON 형식의 한 개 객체로만 답하세요. "
+        "절대 마크다운 코드블록(```json)으로 감싸지 마세요.\n"
         "{\n"
         '  \"feedback\": \"3단 구성 피드백 (각 문단 최소 2문장, 전체 6문장 이상):\\n'
         '    ① 따뜻한 공감과 격려 (2문장 이상)\\n'
@@ -85,6 +125,7 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
         "1. feedback은 반드시 3단 구성으로 작성 (각 문단 최소 2문장, 전체 6문장 이상)\n"
         "2. achievement_explanation은 성취기준을 명시적으로 인용하며 상세히 설명\n"
         "3. revised_text는 학생 원문의 의미를 유지하면서 더 매끄럽고 수준 높게 다듬은 전체 텍스트\n"
+        "4. 반드시 순수 JSON만 출력할 것. ```json 코드블록 사용 금지.\n"
     )
 
     headers = {
@@ -105,12 +146,21 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
     resp = requests.post(OPENAI_API_URL, headers=headers, json=payload, timeout=90)
     resp.raise_for_status()
     data = resp.json()
-    content = data["choices"][0]["message"]["content"].strip()
+    raw_content = data["choices"][0]["message"]["content"].strip()
+
+    # 마크다운 코드블록 제거 후 파싱 시도
+    content = _strip_json_markdown(raw_content)
 
     try:
         parsed = json.loads(content)
-    except json.JSONDecodeError:
-        raise RuntimeError("모델 응답을 JSON으로 파싱하지 못했습니다:\n" + content)
+    except json.JSONDecodeError as e:
+        # 원본 응답을 로그에 남겨 디버깅에 활용
+        logger.error(
+            "OpenAI 응답 JSON 파싱 실패\n"
+            f"  파싱 오류: {e}\n"
+            f"  원본 응답(첫 500자): {raw_content[:500]}"
+        )
+        raise RuntimeError(f"모델 응답을 JSON으로 파싱하지 못했습니다: {e}") from e
 
     feedback_text = parsed.get("feedback", "").strip()
     achievement_explanation = parsed.get("achievement_explanation", "").strip()
@@ -120,7 +170,15 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
     return feedback_text, achievement_explanation, revised_text, scores
 
 
-def build_schema(student_text: str, feedback_text: str, achievement_explanation: str, revised_text: str, scores: dict, achievement_2015: str, text_description: str):
+def build_schema(
+    student_text: str,
+    feedback_text: str,
+    achievement_explanation: str,
+    revised_text: str,
+    scores: dict,
+    achievement_2015: str,
+    text_description: str,
+):
     """설계한 schema.json 구조에 맞게 데이터 블록 생성"""
     now_iso = datetime.utcnow().isoformat() + "Z"
     process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
@@ -134,49 +192,31 @@ def build_schema(student_text: str, feedback_text: str, achievement_explanation:
             "language": "ko",
             "grade": "초등학교 5학년",
             "semester": "2학기",
-            "subject": "국어"
+            "subject": "국어",
         },
         "lesson_context": {
             "lesson_id": "S1_초등_5_국어_TXT_012230",
             "text_title": text_description,
             "text_description": text_description,
-            "achievement_standards": {
-                "2015": [achievement_2015]
-            }
+            "achievement_standards": {"2015": [achievement_2015]},
         },
         "process": {
             "process_id": process_id,
             "status": "ai_drafted",
-            "current_step": 3
+            "current_step": 3,
         },
         "student_essay": {
             "essay_id": essay_id,
             "prompt": "지문을 읽고, 자신과 생각이나 처지가 다른 사람과 어떻게 대화하면 좋을지 느낀 점을 써 보세요.",
             "student_answer": student_text,
-            "submitted_at": now_iso
+            "submitted_at": now_iso,
         },
         "evaluation": {
             "dimensions": {
-                "vocabulary": {
-                    "scale": 5,
-                    "value": int(scores.get("vocabulary", 3)),
-                    "comment": ""
-                },
-                "grammar": {
-                    "scale": 5,
-                    "value": int(scores.get("grammar", 3)),
-                    "comment": ""
-                },
-                "logic": {
-                    "scale": 5,
-                    "value": int(scores.get("logic", 3)),
-                    "comment": ""
-                },
-                "empathy": {
-                    "scale": 5,
-                    "value": int(scores.get("empathy", 4)),
-                    "comment": ""
-                }
+                "vocabulary": {"scale": 5, "value": int(scores.get("vocabulary", 3)), "comment": ""},
+                "grammar":    {"scale": 5, "value": int(scores.get("grammar", 3)),    "comment": ""},
+                "logic":      {"scale": 5, "value": int(scores.get("logic", 3)),      "comment": ""},
+                "empathy":    {"scale": 5, "value": int(scores.get("empathy", 4)),    "comment": ""},
             }
         },
         "ai_feedback": {
@@ -187,12 +227,51 @@ def build_schema(student_text: str, feedback_text: str, achievement_explanation:
             "ai_feedback_type": "3단 구성 공감적 피드백",
             "ai_feedback_tags": ["공감", "경청", "존중", "긍정 강화", "성취기준 기반 조언", "심화 질문"],
             "achievement_explanation": achievement_explanation,
-            "revised_text": revised_text
-        }
+            "revised_text": revised_text,
+        },
     }
 
     return schema
 
+
+# -----------------------------------------------------------------------
+# 🔒 안전한 파일 읽기/쓰기 헬퍼 (Lock 적용)
+# -----------------------------------------------------------------------
+def _read_essays_locked(out_path: str) -> list:
+    """Lock 안에서 schema.json을 읽어 리스트로 반환."""
+    if not os.path.exists(out_path):
+        return []
+    try:
+        with open(out_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else [data]
+    except Exception as e:
+        logger.error(f"schema.json 읽기 실패: {e}")
+        return []
+
+
+def _write_essays_locked(out_path: str, essays: list) -> None:
+    """Lock 안에서 schema.json에 쓴다."""
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(essays, f, ensure_ascii=False, indent=2)
+
+
+def _append_essay_safe(schema: dict) -> None:
+    """
+    Lock을 획득한 뒤 파일을 읽고 → 새 항목 추가 → 다시 쓴다.
+    동시에 여러 스레드가 호출해도 데이터 손실 없음.
+    """
+    out_path = get_schema_path()
+    with _schema_lock:
+        essays = _read_essays_locked(out_path)
+        essays.append(schema)
+        _write_essays_locked(out_path, essays)
+    logger.info(f"[저장 완료] process_id={schema['process']['process_id']} → {out_path} (총 {len(essays)}건)")
+
+
+# -----------------------------------------------------------------------
+# 라우트
+# -----------------------------------------------------------------------
 
 @app.route("/admin")
 def admin():
@@ -205,18 +284,11 @@ def get_essays():
     """schema.json에서 모든 학생 글 데이터를 반환"""
     try:
         out_path = get_schema_path()
-        if not os.path.exists(out_path):
-            return jsonify({"essays": []})
-
-        with open(out_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        # 리스트가 아니면 리스트로 변환
-        if not isinstance(data, list):
-            data = [data]
-
-        return jsonify({"essays": data})
+        with _schema_lock:
+            essays = _read_essays_locked(out_path)
+        return jsonify({"essays": essays})
     except Exception as e:
+        logger.error(f"GET /api/essays 오류: {e}\n{traceback.format_exc()}")
         return jsonify({"error": str(e), "essays": []}), 500
 
 
@@ -230,68 +302,51 @@ def approve_essay():
 
         if not process_id:
             return jsonify({"error": "process_id가 필요합니다."}), 400
-
         if not final_feedback:
             return jsonify({"error": "최종 피드백이 비어있습니다."}), 400
 
         out_path = get_schema_path()
-        if not os.path.exists(out_path):
-            return jsonify({"error": "schema.json 파일을 찾을 수 없습니다."}), 404
-
-        # schema.json 읽기
-        with open(out_path, "r", encoding="utf-8") as f:
-            essays = json.load(f)
-
-        # 리스트가 아니면 리스트로 변환
-        if not isinstance(essays, list):
-            essays = [essays]
-
-        # process_id로 해당 항목 찾기
-        essay_index = None
-        for i, essay in enumerate(essays):
-            if essay.get("process", {}).get("process_id") == process_id:
-                essay_index = i
-                break
-
-        if essay_index is None:
-            return jsonify({"error": "해당 process_id를 가진 데이터를 찾을 수 없습니다."}), 404
-
-        # 업데이트
         now_iso = datetime.utcnow().isoformat() + "Z"
-        essays[essay_index]["process"]["status"] = "completed"
-        essays[essay_index]["process"]["current_step"] = 5
-        essays[essay_index]["metadata"]["updated_at"] = now_iso
 
-        # teacher_correction 섹션 추가/업데이트
-        if "teacher_correction" not in essays[essay_index]:
-            essays[essay_index]["teacher_correction"] = {}
+        with _schema_lock:
+            essays = _read_essays_locked(out_path)
 
-        essays[essay_index]["teacher_correction"]["teacher_id"] = "t_001"  # 실제로는 세션에서 가져오기
-        essays[essay_index]["teacher_correction"]["corrected_at"] = now_iso
-        essays[essay_index]["teacher_correction"]["teacher_final_feedback"] = final_feedback
-        essays[essay_index]["teacher_correction"]["ai_draft_feedback"] = essays[essay_index].get("ai_feedback", {}).get("ai_draft_feedback", "")
+            essay_index = next(
+                (i for i, e in enumerate(essays)
+                 if e.get("process", {}).get("process_id") == process_id),
+                None
+            )
+            if essay_index is None:
+                return jsonify({"error": "해당 process_id를 가진 데이터를 찾을 수 없습니다."}), 404
 
-        # 수업 참여 피드백 저장
-        lesson_feedback = data.get("lesson_feedback", "").strip()
-        essays[essay_index]["lesson_feedback"] = lesson_feedback
+            essays[essay_index]["process"]["status"] = "completed"
+            essays[essay_index]["process"]["current_step"] = 5
+            essays[essay_index]["metadata"]["updated_at"] = now_iso
 
-        # ai_feedback에도 최종 피드백 반영 (선택사항)
-        if "ai_feedback" in essays[essay_index]:
-            essays[essay_index]["ai_feedback"]["final_feedback"] = final_feedback
-            essays[essay_index]["ai_feedback"]["approved_at"] = now_iso
+            if "teacher_correction" not in essays[essay_index]:
+                essays[essay_index]["teacher_correction"] = {}
 
-        # 파일 저장
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(essays, f, ensure_ascii=False, indent=2)
+            essays[essay_index]["teacher_correction"].update({
+                "teacher_id": "t_001",
+                "corrected_at": now_iso,
+                "teacher_final_feedback": final_feedback,
+                "ai_draft_feedback": essays[essay_index].get("ai_feedback", {}).get("ai_draft_feedback", ""),
+            })
 
-        return jsonify({
-            "success": True,
-            "message": "승인 완료",
-            "process_id": process_id,
-            "status": "completed"
-        })
+            lesson_feedback = data.get("lesson_feedback", "").strip()
+            essays[essay_index]["lesson_feedback"] = lesson_feedback
+
+            if "ai_feedback" in essays[essay_index]:
+                essays[essay_index]["ai_feedback"]["final_feedback"] = final_feedback
+                essays[essay_index]["ai_feedback"]["approved_at"] = now_iso
+
+            _write_essays_locked(out_path, essays)
+
+        logger.info(f"[승인 완료] process_id={process_id}")
+        return jsonify({"success": True, "message": "승인 완료", "process_id": process_id, "status": "completed"})
 
     except Exception as e:
+        logger.error(f"POST /api/essays/approve 오류: {e}\n{traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -301,67 +356,54 @@ def send_report():
     try:
         data = request.get_json(force=True)
         process_id = data.get("process_id")
-        report_type = data.get("report_type")  # "student" or "parent"
+        report_type = data.get("report_type")
 
         if not process_id:
             return jsonify({"error": "process_id가 필요합니다."}), 400
-
         if report_type not in ["student", "parent"]:
             return jsonify({"error": "report_type은 'student' 또는 'parent'여야 합니다."}), 400
 
         out_path = get_schema_path()
-        if not os.path.exists(out_path):
-            return jsonify({"error": "schema.json 파일을 찾을 수 없습니다."}), 404
-
-        # schema.json 읽기
-        with open(out_path, "r", encoding="utf-8") as f:
-            essays = json.load(f)
-
-        # 리스트가 아니면 리스트로 변환
-        if not isinstance(essays, list):
-            essays = [essays]
-
-        # process_id로 해당 항목 찾기
-        essay_index = None
-        for i, essay in enumerate(essays):
-            if essay.get("process", {}).get("process_id") == process_id:
-                essay_index = i
-                break
-
-        if essay_index is None:
-            return jsonify({"error": "해당 process_id를 가진 데이터를 찾을 수 없습니다."}), 404
-
-        # report_status 섹션 초기화
-        if "report_status" not in essays[essay_index]:
-            essays[essay_index]["report_status"] = {}
-
-        # 리포트 발송 상태 업데이트
         now_iso = datetime.utcnow().isoformat() + "Z"
-        if report_type == "student":
-            essays[essay_index]["report_status"]["student_sent"] = True
-            essays[essay_index]["report_status"]["student_sent_at"] = now_iso
-        else:
-            essays[essay_index]["report_status"]["parent_sent"] = True
-            essays[essay_index]["report_status"]["parent_sent_at"] = now_iso
 
-        essays[essay_index]["metadata"]["updated_at"] = now_iso
+        with _schema_lock:
+            essays = _read_essays_locked(out_path)
 
-        # 파일 저장
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(essays, f, ensure_ascii=False, indent=2)
+            essay_index = next(
+                (i for i, e in enumerate(essays)
+                 if e.get("process", {}).get("process_id") == process_id),
+                None
+            )
+            if essay_index is None:
+                return jsonify({"error": "해당 process_id를 가진 데이터를 찾을 수 없습니다."}), 404
 
-        return jsonify({
-            "success": True,
-            "message": f"{report_type} 리포트 발송 완료",
-            "process_id": process_id
-        })
+            if "report_status" not in essays[essay_index]:
+                essays[essay_index]["report_status"] = {}
+
+            if report_type == "student":
+                essays[essay_index]["report_status"]["student_sent"] = True
+                essays[essay_index]["report_status"]["student_sent_at"] = now_iso
+            else:
+                essays[essay_index]["report_status"]["parent_sent"] = True
+                essays[essay_index]["report_status"]["parent_sent_at"] = now_iso
+
+            essays[essay_index]["metadata"]["updated_at"] = now_iso
+            _write_essays_locked(out_path, essays)
+
+        logger.info(f"[리포트 발송] process_id={process_id} type={report_type}")
+        return jsonify({"success": True, "message": f"{report_type} 리포트 발송 완료", "process_id": process_id})
 
     except Exception as e:
+        logger.error(f"POST /api/essays/send-report 오류: {e}\n{traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
 
 
 def process_essay_in_background(text: str, process_id: str):
-    """백그라운드 스레드에서 AI 분석 후 schema.json에 저장"""
+    """
+    백그라운드 스레드에서 AI 분석 후 schema.json에 저장.
+    _append_essay_safe()가 Lock을 관리하므로 동시 호출에도 안전하다.
+    """
+    logger.info(f"[백그라운드 시작] process_id={process_id}")
     try:
         achievement_2015, text_description = load_achievement_standard_and_desc(STANDARD_PATH)
 
@@ -380,32 +422,21 @@ def process_essay_in_background(text: str, process_id: str):
             achievement_2015=achievement_2015,
             text_description=text_description,
         )
-        # 미리 생성한 process_id 덮어쓰기
+        # /submit에서 미리 생성한 process_id 덮어쓰기
         schema["process"]["process_id"] = process_id
 
-        out_path = get_schema_path()
-        if os.path.exists(out_path):
-            try:
-                with open(out_path, "r", encoding="utf-8") as f:
-                    existing = json.load(f)
-            except Exception:
-                existing = []
-            if isinstance(existing, list):
-                existing.append(schema)
-                to_save = existing
-            else:
-                to_save = [existing, schema]
-        else:
-            to_save = [schema]
-
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(to_save, f, ensure_ascii=False, indent=2)
+        _append_essay_safe(schema)
 
     except Exception as e:
-        print(f"[백그라운드 처리 오류] process_id={process_id}: {e}")
+        # traceback 전체를 로그에 남겨 원인 파악이 가능하도록
+        logger.error(
+            f"[백그라운드 오류] process_id={process_id}\n"
+            f"  오류 유형: {type(e).__name__}: {e}\n"
+            f"  상세:\n{traceback.format_exc()}"
+        )
 
 
-@app.route('/submit', methods=['POST'])
+@app.route("/submit", methods=["POST"])
 def submit():
     """학생이 글을 제출하면 즉시 응답하고, AI 분석은 백그라운드에서 처리"""
     try:
@@ -415,23 +446,20 @@ def submit():
         if not text:
             return jsonify({"error": "텍스트가 비어 있습니다."}), 400
 
-        # 즉시 process_id 생성 후 백그라운드 스레드 시작
         process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
+        logger.info(f"[제출 접수] process_id={process_id} 글 길이={len(text)}자")
+
         thread = threading.Thread(
             target=process_essay_in_background,
             args=(text, process_id),
-            daemon=True
+            daemon=True,
         )
         thread.start()
 
-        # AI 처리를 기다리지 않고 즉시 응답
-        return jsonify({
-            "success": True,
-            "message": "제출 완료",
-            "process_id": process_id
-        })
+        return jsonify({"success": True, "message": "제출 완료", "process_id": process_id})
 
     except Exception as e:
+        logger.error(f"POST /submit 오류: {e}\n{traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -446,13 +474,11 @@ def analyze():
             return jsonify({"error": "텍스트가 비어 있습니다."}), 400
 
         achievement_2015, text_description = load_achievement_standard_and_desc(STANDARD_PATH)
-
         feedback_text, achievement_explanation, revised_text, scores = call_openai_for_feedback(
             student_text=text,
             achievement_2015=achievement_2015,
             text_description=text_description,
         )
-
         schema = build_schema(
             student_text=text,
             feedback_text=feedback_text,
@@ -463,37 +489,14 @@ def analyze():
             text_description=text_description,
         )
 
-        out_path = get_schema_path()
-        if os.path.exists(out_path):
-            try:
-                with open(out_path, "r", encoding="utf-8") as f:
-                    existing = json.load(f)
-            except Exception:
-                existing = []
+        _append_essay_safe(schema)
 
-            if isinstance(existing, list):
-                existing.append(schema)
-                to_save = existing
-            else:
-                to_save = [existing, schema]
-        else:
-            to_save = [schema]
-
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(to_save, f, ensure_ascii=False, indent=2)
-
-        # 학생 화면에는 성공 메시지만 반환 (분석 결과는 보여주지 않음)
-        return jsonify({
-            "success": True,
-            "message": "제출 완료",
-            "process_id": schema["process"]["process_id"]
-        })
+        return jsonify({"success": True, "message": "제출 완료", "process_id": schema["process"]["process_id"]})
 
     except Exception as e:
+        logger.error(f"POST /analyze 오류: {e}\n{traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
-
