@@ -457,10 +457,20 @@ def send_report():
         return jsonify({"error": str(e)}), 500
 
 
-def process_essay_in_background(text: str, process_id: str):
-    """백그라운드 스레드에서 AI 분석 후 DB에 저장"""
-    logger.info(f"[백그라운드 시작] process_id={process_id}")
+
+@app.route("/submit", methods=["POST"])
+def submit():
+    """학생이 글을 제출하면 AI 분석 후 DB에 저장 (동기 처리)"""
     try:
+        data = request.get_json(force=True)
+        text = (data.get("text") or "").strip()
+
+        if not text:
+            return jsonify({"error": "텍스트가 비어 있습니다."}), 400
+
+        process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
+        logger.info(f"[제출 접수] process_id={process_id} 글 길이={len(text)}자")
+
         achievement_2015, text_description = load_achievement_standard_and_desc(STANDARD_PATH)
         feedback_text, achievement_explanation, revised_text, scores = call_openai_for_feedback(
             student_text=text,
@@ -478,34 +488,8 @@ def process_essay_in_background(text: str, process_id: str):
         )
         schema["process"]["process_id"] = process_id
         _append_essay_safe(schema)
-    except Exception as e:
-        logger.error(
-            f"[백그라운드 오류] process_id={process_id}\n"
-            f"  오류 유형: {type(e).__name__}: {e}\n"
-            f"  상세:\n{traceback.format_exc()}"
-        )
 
-
-@app.route("/submit", methods=["POST"])
-def submit():
-    """학생이 글을 제출하면 즉시 응답하고, AI 분석은 백그라운드에서 처리"""
-    try:
-        data = request.get_json(force=True)
-        text = (data.get("text") or "").strip()
-
-        if not text:
-            return jsonify({"error": "텍스트가 비어 있습니다."}), 400
-
-        process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
-        logger.info(f"[제출 접수] process_id={process_id} 글 길이={len(text)}자")
-
-        thread = threading.Thread(
-            target=process_essay_in_background,
-            args=(text, process_id),
-            daemon=True,
-        )
-        thread.start()
-
+        logger.info(f"[제출 완료] process_id={process_id}")
         return jsonify({"success": True, "message": "제출 완료", "process_id": process_id})
 
     except Exception as e:
