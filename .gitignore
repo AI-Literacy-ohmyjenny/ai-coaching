@@ -43,6 +43,10 @@ yarn-error.log*
 # ============================
 schema.json
 
+# Private/local test fixtures, never publish
+설명글_초등_5학년_ESSAY_32672.json
+S1_초등_5_국어_TXT_012230.json
+
 # ============================
 # 📋 로그 파일
 # ============================
