@@ -143,6 +143,18 @@ def _append_essay_safe(schema: dict) -> None:
 app = Flask(__name__)
 CORS(app)
 
+# TEMPORARY SAFETY PAUSE: disable private-data and paid-AI endpoints until access controls are ready.
+APP_TEMPORARILY_PAUSED = True
+
+@app.before_request
+def _temporary_pause_guard():
+    if APP_TEMPORARILY_PAUSED and (
+        request.path == "/admin"
+        or request.path.startswith("/api/")
+        or request.path in {"/submit", "/analyze"}
+    ):
+        return jsonify({"error": "서비스가 보안 점검을 위해 일시 중단되었습니다."}), 503
+
 
 def load_achievement_standard_and_desc():
     """앱 자체 작성 5학년 독후글 기준을 반환합니다. 외부 JSON은 읽지 않습니다."""
