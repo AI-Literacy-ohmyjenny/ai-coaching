@@ -560,6 +560,8 @@
             </div>
         </div>
 
+        <div id="usageBanner"></div>
+
         <!-- 학생 글 목록 -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -597,6 +599,109 @@
             ? 'http://127.0.0.1:5000'
             : '';
 
+        // ======================================================
+        // 관리자 인증: 비밀번호는 이 탭(sessionStorage)에만 잠시 보관됩니다.
+        // ======================================================
+        function askAdminPassword(message) {
+            return new Promise(resolve => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+                overlay.innerHTML = `
+                    <form style="background:#fff;padding:28px;border-radius:14px;width:min(360px,90vw);box-shadow:0 10px 40px rgba(0,0,0,.3);">
+                        <h3 style="margin:0 0 8px;">🔐 관리자 확인</h3>
+                        <p style="margin:0 0 14px;font-size:14px;color:#666;">${message}</p>
+                        <input type="password" autocomplete="current-password" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box;" />
+                        <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;">
+                            <button type="button" data-cancel class="btn btn-secondary">취소</button>
+                            <button type="submit" class="btn btn-primary">확인</button>
+                        </div>
+                    </form>`;
+                document.body.appendChild(overlay);
+                const input = overlay.querySelector('input');
+                input.focus();
+                const done = value => { overlay.remove(); resolve(value); };
+                overlay.querySelector('form').addEventListener('submit', e => { e.preventDefault(); done(input.value); });
+                overlay.querySelector('[data-cancel]').addEventListener('click', () => done(null));
+            });
+        }
+
+        // 동시에 여러 요청이 인증을 요구해도 입력창은 하나만 띄웁니다.
+        let adminPromptPromise = null;
+        function requestAdminPassword(message) {
+            if (!adminPromptPromise) {
+                adminPromptPromise = askAdminPassword(message).then(v => { adminPromptPromise = null; return v; });
+            }
+            return adminPromptPromise;
+        }
+
+        async function adminFetch(url, options = {}) {
+            const send = pw => fetch(url, {
+                ...options,
+                headers: { ...(options.headers || {}), 'Authorization': 'Bearer ' + pw }
+            });
+            let pw = sessionStorage.getItem('adminPw') || await requestAdminPassword('관리자 비밀번호를 입력해 주세요.');
+            if (!pw) throw new Error('관리자 비밀번호가 필요합니다.');
+            let resp = await send(pw);
+            if (resp.status === 401) {
+                const current = sessionStorage.getItem('adminPw');
+                if (current && current !== pw) {
+                    pw = current; // 다른 요청이 이미 새 비밀번호를 받아 둔 경우
+                } else {
+                    sessionStorage.removeItem('adminPw');
+                    pw = await requestAdminPassword('비밀번호가 맞지 않아요. 다시 입력해 주세요.');
+                    if (!pw) throw new Error('관리자 비밀번호가 필요합니다.');
+                }
+                resp = await send(pw);
+                if (resp.status === 401) {
+                    sessionStorage.removeItem('adminPw');
+                    throw new Error('관리자 비밀번호가 올바르지 않습니다.');
+                }
+            }
+            sessionStorage.setItem('adminPw', pw);
+            return resp;
+        }
+
+        /**
+         * 이번 달 AI 비용 안내 (16,000원 경고 / 20,000원 자동 차단)
+         */
+        async function loadUsage() {
+            const box = document.getElementById('usageBanner');
+            if (!box) return;
+            try {
+                const resp = await adminFetch(`${window.API_BASE}/api/admin/usage`);
+                if (!resp.ok) throw new Error('사용량을 확인하지 못했습니다.');
+                const u = await resp.json();
+                const won = n => Number(n).toLocaleString('ko-KR') + '원';
+                let bg = '#E8F5E9', color = '#2E7D32', msg = '정상';
+                if (u.blocked) { bg = '#FFEBEE'; color = '#C62828'; msg = '한도 도달: 학생 제출이 자동 차단되었습니다'; }
+                else if (u.warning) { bg = '#FFF3E0'; color = '#E65100'; msg = '경고: 월 경고선을 넘었습니다'; }
+                box.style.cssText = `margin-bottom:16px;padding:12px 16px;border-radius:10px;background:${bg};color:${color};font-weight:600;`;
+                box.textContent = `💸 이번 달 AI 비용 약 ${won(u.month_cost_krw)} (경고 ${won(u.warn_krw)} / 차단 ${won(u.limit_krw)}) · ${u.month_calls}건 · ${msg}`;
+            } catch (e) {
+                box.style.cssText = 'margin-bottom:16px;padding:12px 16px;border-radius:10px;background:#FFF3E0;color:#E65100;font-weight:600;';
+                box.textContent = '💸 AI 사용량을 확인할 수 없습니다: ' + e.message;
+            }
+        }
+
+        /**
+         * 관리자 수동 삭제
+         */
+        async function deleteEssay(processId) {
+            if (!processId) { alert('process_id가 없습니다.'); return; }
+            if (!confirm('이 글과 AI 피드백을 완전히 삭제할까요? 되돌릴 수 없습니다.')) return;
+            try {
+                const response = await adminFetch(`${window.API_BASE}/api/essays/${encodeURIComponent(processId)}`, { method: 'DELETE' });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || '삭제에 실패했습니다.');
+                }
+                alert('🗑️ 삭제했습니다.');
+                loadEssays();
+            } catch (error) {
+                alert('오류가 발생했습니다: ' + error.message);
+            }
+        }
+
         // 전역 변수
         let allEssaysData = [];
         let currentFilter = 'all';
@@ -612,9 +717,10 @@
         async function loadEssays() {
             const essayListDiv = document.getElementById('essayList');
             essayListDiv.innerHTML = '<div class="loading">데이터를 불러오는 중...</div>';
+            loadUsage();
 
             try {
-                const response = await fetch(`${window.API_BASE}/api/essays`);
+                const response = await adminFetch(`${window.API_BASE}/api/essays`);
                 if (!response.ok) {
                     throw new Error('데이터를 불러오는데 실패했습니다.');
                 }
@@ -737,6 +843,10 @@
                                         </button>
                                     </div>
                                     ` : ''}
+                                </div>
+                                <div style="text-align: right; margin-bottom: 8px;">
+                                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px; color: #C62828;"
+                                            onclick="event.stopPropagation(); deleteEssay('${essay.process?.process_id || ''}')">🗑️ 삭제</button>
                                 </div>
                                 <div style="cursor: pointer;" onclick="openReviewModal(${index})">
                                     <div class="essay-text">${escapeHtml(studentAnswer.substring(0, 150))}${studentAnswer.length > 150 ? '...' : ''}</div>
@@ -928,7 +1038,7 @@
             approveBtn.textContent = '처리 중...';
 
             try {
-                const response = await fetch(`${window.API_BASE}/api/essays/approve`, {
+                const response = await adminFetch(`${window.API_BASE}/api/essays/approve`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -975,7 +1085,7 @@
             }
 
             try {
-                const response = await fetch(`${window.API_BASE}/api/essays/send-report`, {
+                const response = await adminFetch(`${window.API_BASE}/api/essays/send-report`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
