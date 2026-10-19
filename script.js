@@ -39,8 +39,17 @@ async function submitEssay(event) {
             throw new Error(errorData.error || '제출 중 오류가 발생했습니다.');
         }
 
+        // 서버가 돌려준 '내 글의 결과'만 이 브라우저(탭)에 보관해 리포트 화면에서 보여줍니다.
+        const payload = await response.json().catch(() => ({}));
+        if (payload.result) {
+            let mine = [];
+            try { mine = JSON.parse(sessionStorage.getItem('myEssayResults') || '[]'); } catch (e) { mine = []; }
+            mine.unshift(payload.result);
+            sessionStorage.setItem('myEssayResults', JSON.stringify(mine.slice(0, 20)));
+        }
+
         // 성공 메시지 표시
-        resultDiv.textContent = '✅ 선생님께 소중한 글이 전달되었습니다! 선생님이 곧 확인하실 거예요 😊';
+        resultDiv.textContent = '✅ 글이 제출되었어요! 위쪽 메뉴의 "리포트"에서 피드백을 확인해 보세요 😊';
         resultDiv.style.color = '#4CAF50';
         
         // 입력창 비우기
