@@ -35,7 +35,12 @@ SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 # 교과 성취 기준 파일 경로
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STANDARD_PATH = os.path.join(BASE_DIR, "S1_초등_5_국어_TXT_012230.json")
+# 앱 자체 작성 기준: 외부 학습 데이터 파일을 공개 저장소에 둘 필요가 없도록 합니다.
+DEFAULT_ACHIEVEMENT_STANDARD = "초등학교 5학년 수준에서 읽은 이야기의 인물이나 사건을 바탕으로 자신의 생각과 근거를 분명하게 표현한다."
+DEFAULT_TEXT_DESCRIPTION = (
+    "학생은 책을 읽고 제시된 독후 질문에 자신의 생각을 썼습니다. "
+    "책의 원문 표현을 재현하지 말고, 학생의 생각·근거·문장 표현을 중심으로 지도하세요."
+)
 
 # -----------------------------------------------------------------------
 # 🔒 로컬 파일 저장용 Lock (로컬 개발 fallback)
@@ -139,13 +144,9 @@ app = Flask(__name__)
 CORS(app)
 
 
-def load_achievement_standard_and_desc(standard_json_path: str):
-    with open(standard_json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    standards = data.get("source_data_info", {}).get("2015_achievement_standard", [])
-    achievement_2015 = " ".join(standards) if standards else ""
-    text_description = data.get("learning_data_info", {}).get("text_description", "")
-    return achievement_2015, text_description
+def load_achievement_standard_and_desc():
+    """앱 자체 작성 5학년 독후글 기준을 반환합니다. 외부 JSON은 읽지 않습니다."""
+    return DEFAULT_ACHIEVEMENT_STANDARD, DEFAULT_TEXT_DESCRIPTION
 
 
 def _strip_json_markdown(content: str) -> str:
@@ -258,7 +259,7 @@ def build_schema(
             "subject": "국어",
         },
         "lesson_context": {
-            "lesson_id": "S1_초등_5_국어_TXT_012230",
+            "lesson_id": "grade5-original-reading-reflection",
             "text_title": text_description,
             "text_description": text_description,
             "achievement_standards": {"2015": [achievement_2015]},
@@ -270,7 +271,7 @@ def build_schema(
         },
         "student_essay": {
             "essay_id": essay_id,
-            "prompt": "지문을 읽고, 자신과 생각이나 처지가 다른 사람과 어떻게 대화하면 좋을지 느낀 점을 써 보세요.",
+            "prompt": "책을 읽고 제시된 질문에 대한 자신의 생각과 근거를 써 보세요.",
             "student_answer": student_text,
             "submitted_at": now_iso,
         },
@@ -471,7 +472,7 @@ def submit():
         process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
         logger.info(f"[제출 접수] process_id={process_id} 글 길이={len(text)}자")
 
-        achievement_2015, text_description = load_achievement_standard_and_desc(STANDARD_PATH)
+        achievement_2015, text_description = load_achievement_standard_and_desc()
         feedback_text, achievement_explanation, revised_text, scores = call_openai_for_feedback(
             student_text=text,
             achievement_2015=achievement_2015,
@@ -507,7 +508,7 @@ def analyze():
         if not text:
             return jsonify({"error": "텍스트가 비어 있습니다."}), 400
 
-        achievement_2015, text_description = load_achievement_standard_and_desc(STANDARD_PATH)
+        achievement_2015, text_description = load_achievement_standard_and_desc()
         feedback_text, achievement_explanation, revised_text, scores = call_openai_for_feedback(
             student_text=text,
             achievement_2015=achievement_2015,
