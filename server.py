@@ -86,6 +86,194 @@ OPENAI_MAX_OUTPUT_TOKENS = 1500
 KST = timezone(timedelta(hours=9))
 PROCESS_ID_RE = re.compile(r"^proc_\d{8}_\d{6}_[0-9a-f]{6}$")
 
+# -----------------------------------------------------------------------
+# 📚 독후 질문 목록 (5학년 파일럿 초안, 30종)
+# 책 본문은 싣지 않고 제목과 직접 만든 질문만 제공합니다. 허용목록(allowlist) 역할도 합니다.
+# -----------------------------------------------------------------------
+BOOKS = [
+    {
+        "id": 1,
+        "chapter": "1장. 세상의 시작과 인물 이야기",
+        "title": "단군 신화",
+        "question": "이 이야기는 나라의 시작을 어떻게 설명하나요? 그렇게 생각한 까닭을 자기 말로 써 보세요."
+    },
+    {
+        "id": 2,
+        "chapter": "1장. 세상의 시작과 인물 이야기",
+        "title": "주몽 신화",
+        "question": "주몽이 어려움을 이겨 내는 데 가장 큰 힘이 된 것은 무엇이라고 생각하나요?"
+    },
+    {
+        "id": 3,
+        "chapter": "1장. 세상의 시작과 인물 이야기",
+        "title": "김수로왕 신화",
+        "question": "새로운 나라를 세우는 데 필요한 자질은 무엇이라고 생각하나요? 이야기와 연결해 써 보세요."
+    },
+    {
+        "id": 4,
+        "chapter": "1장. 세상의 시작과 인물 이야기",
+        "title": "도미 설화",
+        "question": "어려운 상황에서도 도미와 아내가 지키려 한 것은 무엇인가요? 그 선택을 어떻게 생각하나요?"
+    },
+    {
+        "id": 5,
+        "chapter": "1장. 세상의 시작과 인물 이야기",
+        "title": "연오랑 세오녀",
+        "question": "서로 다른 곳으로 떠난 두 사람의 이야기는 사람과 문화가 만나는 일에 대해 무엇을 생각하게 하나요?"
+    },
+    {
+        "id": 6,
+        "chapter": "1장. 세상의 시작과 인물 이야기",
+        "title": "김현 감호",
+        "question": "사람과 호랑이의 관계를 통해 이 이야기가 전하는 마음이나 가치는 무엇이라고 생각하나요?"
+    },
+    {
+        "id": 7,
+        "chapter": "2장. 위기를 극복한 슈퍼히어로 이야기",
+        "title": "홍길동전",
+        "question": "홍길동이 바꾸고 싶어 한 문제는 무엇인가요? 그가 선택한 해결 방법에 대해 어떻게 생각하나요?"
+    },
+    {
+        "id": 8,
+        "chapter": "2장. 위기를 극복한 슈퍼히어로 이야기",
+        "title": "박씨전",
+        "question": "박씨가 어려움을 해결할 수 있었던 힘은 어디에서 나왔다고 생각하나요?"
+    },
+    {
+        "id": 9,
+        "chapter": "2장. 위기를 극복한 슈퍼히어로 이야기",
+        "title": "유충렬전",
+        "question": "유충렬이 위기를 이겨 내는 데 용기 말고도 필요했던 것은 무엇인가요?"
+    },
+    {
+        "id": 10,
+        "chapter": "2장. 위기를 극복한 슈퍼히어로 이야기",
+        "title": "전우치전",
+        "question": "특별한 능력은 어떤 목적으로 쓰일 때 가치 있다고 생각하나요?"
+    },
+    {
+        "id": 11,
+        "chapter": "2장. 위기를 극복한 슈퍼히어로 이야기",
+        "title": "금방울전",
+        "question": "금방울의 등장으로 주변 사람들의 삶은 어떻게 달라지나요?"
+    },
+    {
+        "id": 12,
+        "chapter": "2장. 위기를 극복한 슈퍼히어로 이야기",
+        "title": "박문수전",
+        "question": "억울한 일을 해결할 때, 믿을 만한 판단을 하려면 무엇을 살펴야 할까요?"
+    },
+    {
+        "id": 13,
+        "chapter": "3장. 사랑과 가족, 엇갈린 운명 이야기",
+        "title": "춘향전",
+        "question": "춘향의 선택에서 가장 중요하게 지켜진 가치는 무엇이라고 생각하나요?"
+    },
+    {
+        "id": 14,
+        "chapter": "3장. 사랑과 가족, 엇갈린 운명 이야기",
+        "title": "구운몽",
+        "question": "꿈과 현실에 관한 이야기를 읽고, 나에게 정말 소중한 것이 무엇인지 써 보세요."
+    },
+    {
+        "id": 15,
+        "chapter": "3장. 사랑과 가족, 엇갈린 운명 이야기",
+        "title": "운영전",
+        "question": "인물이 자신의 마음과 주변의 규칙 사이에서 갈등할 때, 어떤 선택이 더 나은지 이유와 함께 써 보세요."
+    },
+    {
+        "id": 16,
+        "chapter": "3장. 사랑과 가족, 엇갈린 운명 이야기",
+        "title": "사씨남정기",
+        "question": "사람을 판단할 때 소문과 사실을 구별하려면 무엇이 필요할까요?"
+    },
+    {
+        "id": 17,
+        "chapter": "3장. 사랑과 가족, 엇갈린 운명 이야기",
+        "title": "만복사저포기",
+        "question": "현실과 신비한 일이 함께 나오는 방식이 이야기의 느낌이나 주제에 어떤 영향을 주나요?"
+    },
+    {
+        "id": 18,
+        "chapter": "3장. 사랑과 가족, 엇갈린 운명 이야기",
+        "title": "장화홍련전",
+        "question": "억울한 일을 판단하기 전에 여러 사람의 이야기를 듣는 것이 왜 중요할까요?"
+    },
+    {
+        "id": 19,
+        "chapter": "4장. 웃기지만 가볍지 않은 풍자 이야기",
+        "title": "허생전",
+        "question": "이 이야기가 당시 사회의 어떤 문제를 돌아보게 한다고 생각하나요?"
+    },
+    {
+        "id": 20,
+        "chapter": "4장. 웃기지만 가볍지 않은 풍자 이야기",
+        "title": "호질",
+        "question": "웃음이나 풍자가 잘못된 행동을 비판하는 데 어떤 도움을 주나요?"
+    },
+    {
+        "id": 21,
+        "chapter": "4장. 웃기지만 가볍지 않은 풍자 이야기",
+        "title": "옹고집전",
+        "question": "옹고집이 자신의 행동을 돌아보게 된 까닭은 무엇이며, 사람은 어떻게 달라질 수 있을까요?"
+    },
+    {
+        "id": 22,
+        "chapter": "4장. 웃기지만 가볍지 않은 풍자 이야기",
+        "title": "봉산 탈춤",
+        "question": "탈과 익살을 사용해 비판하는 방식은 곧바로 말하는 것과 무엇이 다를까요?"
+    },
+    {
+        "id": 23,
+        "chapter": "4장. 웃기지만 가볍지 않은 풍자 이야기",
+        "title": "흥부전",
+        "question": "흥부와 놀부의 행동을 비교해 보고, 두 사람에게 어떤 변화가 필요하다고 생각하는지 써 보세요."
+    },
+    {
+        "id": 24,
+        "chapter": "4장. 웃기지만 가볍지 않은 풍자 이야기",
+        "title": "별주부전",
+        "question": "위기를 벗어나는 데 말솜씨와 지혜는 어떤 역할을 하나요? 지혜롭게 행동하는 것과 속이는 것은 어떻게 다를까요?"
+    },
+    {
+        "id": 25,
+        "chapter": "5장. 사람이 아닌 존재의 이야기",
+        "title": "장끼전",
+        "question": "중요한 일을 결정할 때 다른 사람의 조언을 듣는 것은 언제 도움이 되고, 언제 스스로 판단해야 할까요?"
+    },
+    {
+        "id": 26,
+        "chapter": "5장. 사람이 아닌 존재의 이야기",
+        "title": "화왕계",
+        "question": "꽃과 주변 인물의 모습을 빌려 어떤 종류의 조언이나 태도를 생각하게 하나요?"
+    },
+    {
+        "id": 27,
+        "chapter": "5장. 사람이 아닌 존재의 이야기",
+        "title": "규중칠우쟁론기",
+        "question": "평소 눈에 잘 띄지 않는 일이나 도구의 가치를 이야기로 드러내면 어떤 점이 좋을까요?"
+    },
+    {
+        "id": 28,
+        "chapter": "5장. 사람이 아닌 존재의 이야기",
+        "title": "두껍전",
+        "question": "동물들이 사람처럼 말하는 설정은 인간의 어떤 행동을 돌아보게 하나요?"
+    },
+    {
+        "id": 29,
+        "chapter": "5장. 사람이 아닌 존재의 이야기",
+        "title": "조침문",
+        "question": "평범한 물건에 마음을 담아 글을 쓰면 어떤 감정이나 기억을 표현할 수 있을까요?"
+    },
+    {
+        "id": 30,
+        "chapter": "5장. 사람이 아닌 존재의 이야기",
+        "title": "금수회의록",
+        "question": "동물들의 말을 통해 인간이 자연과 다른 생명에게 지켜야 할 책임은 무엇이라고 생각하나요?"
+    }
+]
+BOOKS_BY_ID = {b["id"]: b for b in BOOKS}
+
 # 교과 성취 기준 파일 경로
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 앱 자체 작성 기준: 외부 학습 데이터 파일을 공개 저장소에 둘 필요가 없도록 합니다.
@@ -538,6 +726,7 @@ def build_schema(
     scores: dict,
     achievement_2015: str,
     text_description: str,
+    book: dict = None,
 ):
     now_iso = datetime.utcnow().isoformat() + "Z"
     process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
@@ -555,8 +744,9 @@ def build_schema(
         },
         "lesson_context": {
             "lesson_id": "grade5-original-reading-reflection",
-            "text_title": text_description,
+            "text_title": book["title"] if book else text_description,
             "text_description": text_description,
+            "book": ({"id": book["id"], "title": book["title"], "chapter": book["chapter"]} if book else None),
             "achievement_standards": {"2015": [achievement_2015]},
         },
         "process": {
@@ -566,7 +756,7 @@ def build_schema(
         },
         "student_essay": {
             "essay_id": essay_id,
-            "prompt": "책을 읽고 제시된 질문에 대한 자신의 생각과 근거를 써 보세요.",
+            "prompt": book["question"] if book else "책을 읽고 제시된 질문에 대한 자신의 생각과 근거를 써 보세요.",
             "student_answer": student_text,
             "submitted_at": now_iso,
         },
@@ -597,6 +787,10 @@ def _student_view(schema: dict) -> dict:
     return {
         "process": {"process_id": schema["process"]["process_id"], "status": "ai_drafted"},
         "metadata": {"created_at": schema["metadata"]["created_at"]},
+        "lesson_context": {
+            "book_title": (schema["lesson_context"].get("book") or {}).get("title", ""),
+            "question": schema["student_essay"]["prompt"],
+        },
         "student_essay": {
             "student_answer": schema["student_essay"]["student_answer"],
             "submitted_at": schema["student_essay"]["submitted_at"],
@@ -807,6 +1001,12 @@ def send_report():
 # -----------------------------------------------------------------------
 # 라우트: 학생용 (인증 없음 → 길이/횟수/비용 한도로 보호)
 # -----------------------------------------------------------------------
+@app.get("/api/books")
+def list_books():
+    """학생 화면에서 책 고르기에 쓰는 공개 목록 (제목과 질문만, 책 본문 없음)"""
+    return jsonify({"books": BOOKS})
+
+
 @app.route("/submit", methods=["POST"])
 def submit():
     """학생이 글을 제출하면 AI 분석 후 DB에 저장하고, 제출한 본인에게 그 결과만 돌려줍니다."""
@@ -815,6 +1015,13 @@ def submit():
     if not isinstance(text, str):
         return jsonify({"error": "텍스트가 비어 있습니다."}), 400
     text = text.strip()
+
+    try:
+        book = BOOKS_BY_ID.get(int(data.get("book_id")))
+    except (TypeError, ValueError):
+        book = None
+    if book is None:
+        return jsonify({"error": "읽은 책을 먼저 골라 주세요."}), 400
 
     if not text:
         return jsonify({"error": "텍스트가 비어 있습니다."}), 400
@@ -849,7 +1056,12 @@ def submit():
         process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
         logger.info(f"[제출 접수] process_id={process_id} 글 길이={len(text)}자")
 
-        achievement_2015, text_description = load_achievement_standard_and_desc()
+        achievement_2015, _ = load_achievement_standard_and_desc()
+        text_description = (
+            f"학생은 '{book['title']}'을(를) 읽고 다음 독후 질문에 자신의 생각을 썼습니다. "
+            f"질문: {book['question']} "
+            "책의 원문 표현을 재현하지 말고, 학생의 생각·근거·문장 표현을 중심으로 지도하세요."
+        )
         try:
             feedback_text, achievement_explanation, revised_text, scores, usage = call_openai_for_feedback(
                 student_text=text,
@@ -871,6 +1083,7 @@ def submit():
             scores=scores,
             achievement_2015=achievement_2015,
             text_description=text_description,
+            book=book,
         )
         schema["process"]["process_id"] = process_id
         _append_essay_safe(schema)
