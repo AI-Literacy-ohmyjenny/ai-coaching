@@ -3,1040 +3,329 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0C5846">
     <title>AI 문해력 논술 코칭</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --stage: #4E9F78;
+            --deep: #0C5846;
+            --mint: #67C9A0;
+            --orange: #FF8B5E;
+            --peri: #8E92F2;
+            --sand: #F6C877;
+            --ink: #17221D;
+            --sub: #7C8B84;
+            --line: #ECF0EE;
+            --card: #F4F6F5;
         }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { min-height: 100%; }
         body {
             font-family: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
-            background: #FCF9F2;
+            background: var(--stage);
+            color: var(--ink);
+            font-size: 16px;
+            line-height: 1.55;
+        }
+        button { font-family: inherit; border: none; background: none; color: inherit; cursor: pointer; text-align: inherit; }
+        svg { display: block; }
+        .ico { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* 앱 틀: 모바일은 꽉 차게, 큰 화면에서는 가운데 카드 */
+        #app {
+            width: 100%;
+            max-width: 460px;
             min-height: 100vh;
-            height: 100vh;
-            padding: 16px 24px;
-            overflow-x: hidden;
-            overflow-y: hidden;
-            color: #2C3E2D;
-            font-size: 18px;
-            line-height: 1.6;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* 배경 장식 제거 */
-        .cloud, .star { display: none; }
-
-        /* 헤더 */
-        .header {
-            text-align: center;
-            margin-bottom: 12px;
-            flex-shrink: 0;
-        }
-
-        .header h1 {
-            font-size: 32px;
-            color: #91C788;
-            font-weight: 800;
-            margin-bottom: 4px;
-            letter-spacing: -0.5px;
-        }
-
-        .header p {
-            font-size: 15px;
-            color: #6A8F65;
-            font-weight: 500;
-        }
-
-        /* 메인 컨테이너 */
-        .container {
-            max-width: 1000px;
-            width: 100%;
             margin: 0 auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        /* 메뉴 버튼 — 슬림화 + 아이콘 좌측 */
-        .menu-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-            flex-shrink: 0;
-        }
-
-        .menu-btn {
-            background: #ffffff;
-            border: 2px solid #C8E6C4;
-            border-radius: 20px;
-            padding: 14px 24px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-            box-shadow: 0 2px 8px rgba(145, 199, 136, 0.1);
-            text-align: left;
-        }
-
-        .menu-btn:hover {
-            transform: scale(1.02);
-            box-shadow: 0 6px 20px rgba(145, 199, 136, 0.25);
-            border-color: #91C788;
-        }
-
-        .menu-btn:active {
-            transform: scale(0.99);
-        }
-
-        .menu-btn .icon {
-            font-size: 36px;
-            flex-shrink: 0;
-            line-height: 1;
-        }
-
-        .menu-btn .menu-text {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .menu-btn .title {
-            font-size: 20px;
-            font-weight: 800;
-            color: #91C788;
-            margin-bottom: 2px;
-        }
-
-        .menu-btn .desc {
-            font-size: 13px;
-            color: #7A9577;
-            line-height: 1.4;
-        }
-
-        /* 섹션 */
-        .section {
-            display: none;
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 24px 28px 20px;
-            box-shadow: 0 4px 16px rgba(145, 199, 136, 0.12);
-            border: 1.5px solid #DFF2DA;
-            flex: 1;
-            min-height: 0;
-            overflow: hidden;
-        }
-
-        .section.active {
-            display: flex;
-            flex-direction: column;
-            animation: fadeIn 0.35s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        /* 글쓰기 섹션 */
-        .writing-section h2 {
-            font-size: 22px;
-            color: #91C788;
-            margin-bottom: 10px;
-            text-align: center;
-            font-weight: 800;
-            flex-shrink: 0;
-        }
-
-        .input-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        textarea {
-            width: 100%;
-            padding: 16px 18px;
-            font-size: 17px;
-            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-            border: 2px solid #C8E6C4;
-            border-radius: 16px;
-            resize: none;
-            flex: 1;
-            min-height: 0;
-            line-height: 1.6;
-            background-color: #FCF9F2;
-            outline: none;
-            color: #2C3E2D;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        textarea:focus {
-            border-color: #91C788;
-            box-shadow: 0 0 0 4px rgba(145, 199, 136, 0.18);
-        }
-
-        /* 책 고르기 */
-        .book-picker { margin-bottom: 14px; }
-        .book-picker label {
-            display: block;
-            font-weight: 800;
-            color: #4F7A4A;
-            margin-bottom: 6px;
-        }
-        .book-picker select {
-            width: 100%;
-            padding: 13px 14px;
-            font-size: 17px;
-            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-            border: 2px solid #C8E6C4;
-            border-radius: 14px;
-            background-color: #FCF9F2;
-            color: #2C3E2D;
-            outline: none;
-        }
-        .book-picker select:focus {
-            border-color: #91C788;
-            box-shadow: 0 0 0 4px rgba(145, 199, 136, 0.18);
-        }
-        .question-box {
-            display: none;
-            margin: 0 0 14px;
-            padding: 14px 16px;
-            background: #EEF8EC;
-            border-left: 5px solid #91C788;
-            border-radius: 12px;
-            color: #2C3E2D;
-            font-size: 17px;
-            line-height: 1.6;
-            font-weight: 600;
-        }
-        .question-box.show { display: block; }
-        .write-notice {
-            margin: 10px 0 0;
-            font-size: 14px;
-            color: #6B7F6A;
-            line-height: 1.5;
-        }
-
-        /* 제출 버튼 — #FFD369 */
-        .submit-btn {
-            margin-top: 12px;
-            padding: 14px 40px;
-            font-size: 18px;
-            font-family: 'Pretendard', sans-serif;
-            font-weight: 800;
-            background: #FFD369;
-            color: #3B2E00;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            width: 100%;
-            flex-shrink: 0;
-            transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-            box-shadow: 0 4px 14px rgba(255, 211, 105, 0.35);
-            letter-spacing: 0.3px;
-        }
-
-        .submit-btn:hover {
-            background: #F5C542;
-            transform: scale(1.02) translateY(-2px);
-            box-shadow: 0 8px 24px rgba(255, 211, 105, 0.5);
-        }
-
-        .submit-btn:active {
-            background: #E8B830;
-            transform: scale(0.99) translateY(0);
-            box-shadow: 0 2px 8px rgba(255, 211, 105, 0.3);
-        }
-
-        .result {
-            margin-top: 10px;
-            font-size: 16px;
-            font-weight: 700;
-            text-align: center;
-            padding: 10px 16px;
-            border-radius: 16px;
-            min-height: 0;
-            line-height: 1.5;
-            flex-shrink: 0;
-        }
-
-        /* 리포트 섹션 */
-        .reports-section h2 {
-            font-size: 30px;
-            color: #91C788;
-            margin-bottom: 24px;
-            text-align: center;
-            font-weight: 800;
-        }
-
-        .reports-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .report-card {
-            background: #FDFFF5;
-            border: 2px solid #C8E6C4;
-            border-radius: 20px;
-            padding: 26px;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-            box-shadow: 0 2px 8px rgba(145, 199, 136, 0.1);
-        }
-
-        .report-card:hover {
-            transform: scale(1.03) translateY(-2px);
-            box-shadow: 0 10px 28px rgba(145, 199, 136, 0.25);
-            border-color: #91C788;
-        }
-
-        .report-card .date {
-            font-size: 14px;
-            color: #7A9577;
-            margin-bottom: 12px;
-        }
-
-        .report-card .preview {
-            font-size: 17px;
-            color: #2C3E2D;
-            line-height: 1.6;
-            margin-bottom: 16px;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .report-card .scores-preview {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .score-chip-small {
-            padding: 6px 14px;
-            background: #DFF2DA;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #4A7A44;
-        }
-
-        /* 모달 */
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(44, 62, 45, 0.4);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal.active { display: flex; }
-
-        .modal-content {
-            background: #ffffff;
-            border-radius: 20px;
-            max-width: 800px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 16px 48px rgba(44, 62, 45, 0.18);
-        }
-
-        .modal-header {
-            background: #91C788;
-            color: white;
-            padding: 26px 32px;
-            border-radius: 20px 20px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            font-size: 22px;
-            font-weight: 800;
-        }
-
-        .modal-close {
-            background: rgba(255, 255, 255, 0.25);
-            border: none;
-            color: white;
-            font-size: 22px;
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .modal-close:hover {
-            background: rgba(255, 255, 255, 0.4);
-            transform: rotate(90deg) scale(1.1);
-        }
-
-        .modal-body { padding: 32px; }
-
-        .feedback-section { margin-bottom: 32px; }
-
-        .feedback-section h4 {
-            font-size: 20px;
-            color: #91C788;
-            margin-bottom: 14px;
-            font-weight: 800;
-        }
-
-        .feedback-content {
-            background: #FDFFF5;
-            border: 2px solid #C8E6C4;
-            border-radius: 20px;
-            padding: 20px;
-            font-size: 17px;
-            line-height: 1.6;
-            color: #2C3E2D;
-            white-space: pre-wrap;
-        }
-
-        /* 카드 뉴스 */
-        .card-news {
-            display: grid;
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        .news-card {
-            background: #F0FAF0;
-            border-radius: 20px;
-            padding: 26px;
-            border: 1.5px solid #C8E6C4;
-        }
-
-        .news-card h5 {
-            font-size: 18px;
-            color: #91C788;
-            margin-bottom: 12px;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .news-card .content {
-            font-size: 17px;
-            line-height: 1.6;
-            color: #2C3E2D;
-            white-space: pre-wrap;
-        }
-
-        .revised-text-card {
-            background: #F1FBF2;
-            border-color: #A5D6A7;
-        }
-
-        .revised-text-card h5 { color: #4CAF50; }
-
-        /* 탭 */
-        .report-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 24px;
-            border-bottom: 2px solid #C8E6C4;
-        }
-
-        .tab-btn {
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: 700;
-            font-family: 'Pretendard', sans-serif;
-            color: #7A9577;
-            background: transparent;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            transition: color 0.2s ease, border-color 0.2s ease;
-            border-radius: 0;
-        }
-
-        .tab-btn.active {
-            color: #91C788;
-            border-bottom-color: #91C788;
-        }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* 종합 성취도 */
-        .overall-chart {
-            background: #F0FAF0;
-            border-radius: 20px;
-            padding: 26px;
-            margin-top: 20px;
-            border: 1.5px solid #C8E6C4;
-        }
-
-        .overall-chart h5 {
-            font-size: 18px;
-            color: #91C788;
-            margin-bottom: 16px;
-            font-weight: 800;
-            text-align: center;
-        }
-
-        .radar-chart {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 20px 0;
-        }
-
-        .radar-container {
+            background: #fff;
             position: relative;
-            width: 280px;
-            height: 280px;
-        }
-
-        .radar-bg {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: #C8E6C4;
-            opacity: 0.5;
-        }
-
-        .radar-score {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px;
-            font-weight: 800;
-            color: #91C788;
-        }
-
-        /* 차트 */
-        .charts-section { margin-top: 28px; }
-
-        .chart-container { margin-bottom: 20px; }
-
-        .chart-title {
-            font-size: 16px;
-            color: #6A8F65;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .bar-chart {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .bar-label {
-            width: 72px;
-            font-size: 15px;
-            color: #7A9577;
-            font-weight: 700;
-        }
-
-        .bar-wrapper {
-            flex: 1;
-            height: 32px;
-            background: #DFF2DA;
-            border-radius: 20px;
+            flex-direction: column;
             overflow: hidden;
         }
-
-        .bar-fill {
-            height: 100%;
-            background: #91C788;
-            border-radius: 20px;
-            transition: width 0.8s ease;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 12px;
-            color: white;
-            font-weight: 700;
-            font-size: 14px;
+        @media (min-width: 520px) {
+            body { padding: 24px 0; }
+            #app { min-height: calc(100vh - 48px); border-radius: 34px; box-shadow: 0 24px 60px rgba(8, 50, 38, .32); }
         }
+        .view { display: none; flex: 1; flex-direction: column; padding-bottom: 76px; animation: fade .25s ease; }
+        .view.active { display: flex; }
+        .view.no-tab { padding-bottom: 28px; }
+        @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-        /* 빈 상태 */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #7A9577;
+        /* 홈 상단 */
+        .hero { background: var(--deep); color: #fff; padding: 22px 22px 54px; position: relative; overflow: hidden; flex: none; }
+        .hero::before { content: ""; position: absolute; right: -60px; top: -70px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.06); }
+        .who { display: flex; align-items: center; gap: 11px; position: relative; }
+        .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--sand); display: flex; align-items: center; justify-content: center; flex: none; }
+        .who b { font-size: 16px; display: block; line-height: 1.3; }
+        .who span { font-size: 12px; opacity: .82; }
+        .badges { position: relative; margin-top: 10px; min-height: 28px; }
+        .badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,.14); padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; margin-right: 6px; }
+        .badge svg { width: 14px; height: 14px; fill: none; stroke: #FFD08A; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+        .hero h2 { font-size: 22px; line-height: 1.35; margin-top: 14px; font-weight: 800; position: relative; letter-spacing: -.4px; max-width: 62%; word-break: keep-all; }
+        .hero .art { position: absolute; right: 10px; bottom: 34px; }
+        .linklike { position: relative; margin-top: 8px; font-size: 11.5px; color: rgba(255,255,255,.7); text-decoration: underline; padding: 4px 0; }
+        .sheet { background: #fff; border-radius: 28px 28px 0 0; margin-top: -26px; padding: 20px 18px 8px; position: relative; flex: 1; }
+        .sheet h3 { font-size: 20px; font-weight: 800; letter-spacing: -.3px; }
+        .sheet .sub { font-size: 13px; color: var(--sub); margin: 2px 0 14px; }
+
+        .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .chip { border-radius: 20px; padding: 13px 14px; color: #fff; min-height: 92px; position: relative; overflow: hidden; font-weight: 800; font-size: 15.5px; line-height: 1.3; display: flex; flex-direction: column; justify-content: flex-end; transition: transform .15s ease; }
+        .chip:active { transform: scale(.97); }
+        .chip::after { content: ""; position: absolute; right: -16px; top: -16px; width: 66px; height: 66px; border-radius: 50%; background: rgba(255,255,255,.22); }
+        .chip .i { position: absolute; left: 13px; top: 12px; width: 28px; height: 28px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; z-index: 1; }
+        .chip small { font-weight: 600; font-size: 11.5px; opacity: .92; margin-top: 2px; }
+        .k1 { background: var(--orange); } .k2 { background: var(--peri); } .k3 { background: var(--mint); color: #06382b; }
+        .k3 .i { stroke: #06382b; } .k4 { background: var(--deep); } .k5 { background: var(--sand); color: #4a3200; } .k5 .i { stroke: #4a3200; }
+        .k6 { background: var(--card); color: var(--sub); align-items: center; justify-content: center; text-align: center; font-size: 13px; font-weight: 700; }
+        .k6::after { display: none; }
+
+        /* 상단 바 / 단계 */
+        .top { display: flex; align-items: center; gap: 10px; padding: 20px 18px 0; }
+        .back { width: 36px; height: 36px; border-radius: 12px; background: var(--card); display: flex; align-items: center; justify-content: center; flex: none; }
+        .back .ico { width: 18px; height: 18px; }
+        .top .t { font-weight: 800; font-size: 17px; letter-spacing: -.3px; }
+        .steps { display: flex; gap: 6px; margin: 14px 18px 0; }
+        .steps span { flex: 1; height: 5px; border-radius: 99px; background: var(--line); }
+        .steps span.on { background: var(--deep); }
+        .body { padding: 16px 18px 0; flex: 1; }
+
+        /* 책 목록 */
+        .booklist { display: flex; flex-direction: column; gap: 10px; }
+        .bookrow { display: flex; gap: 12px; align-items: center; background: var(--card); border-radius: 18px; padding: 13px 14px; width: 100%; transition: transform .15s ease; }
+        .bookrow:active { transform: scale(.98); }
+        .bookrow .no { width: 38px; height: 38px; border-radius: 12px; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; flex: none; }
+        .bookrow b { display: block; font-size: 16px; }
+        .bookrow span { word-break: keep-all; display: -webkit-box; font-size: 12.5px; color: var(--sub); line-height: 1.45; margin-top: 2px; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* 글쓰기 */
+        .qcard { background: #EAF7F1; border-radius: 20px; padding: 15px 16px; border: 1.5px solid #CBEBDD; }
+        .qcard .bk { font-size: 12px; color: var(--deep); font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .qcard .bk svg { width: 16px; height: 16px; stroke: var(--deep); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+        .qcard .q { word-break: keep-all; font-size: 17.5px; font-weight: 800; line-height: 1.5; letter-spacing: -.3px; }
+        textarea {
+            width: 100%; margin-top: 12px; border: 1.5px solid var(--line); background: #FBFCFB; border-radius: 18px; padding: 14px 15px;
+            font-family: inherit; font-size: 16px; line-height: 1.7; min-height: 210px; resize: none; color: #26352e; outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
         }
+        textarea:focus { border-color: var(--mint); box-shadow: 0 0 0 4px rgba(103,201,160,.2); }
+        .count { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--sub); margin-top: 8px; }
+        .btn { display: block; width: 100%; margin-top: 12px; background: var(--orange); color: #fff; font-weight: 800; font-size: 17px; text-align: center; padding: 15px; border-radius: 18px; box-shadow: 0 8px 18px rgba(255,139,94,.35); transition: transform .15s ease, opacity .15s ease; }
+        .btn:active { transform: scale(.98); }
+        .btn[disabled] { opacity: .6; cursor: default; }
+        .btn.ghost { background: var(--card); color: var(--ink); box-shadow: none; }
+        .msg { min-height: 22px; margin-top: 10px; font-size: 14px; text-align: center; color: #D4502B; font-weight: 600; }
+        .tip { margin-top: 10px; font-size: 12px; color: var(--sub); line-height: 1.5; background: var(--card); padding: 10px 12px; border-radius: 12px; display: flex; gap: 8px; align-items: center; }
+        .tip svg { width: 16px; height: 16px; flex: none; stroke: var(--sub); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-        .empty-state .icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-            display: block;
-        }
+        /* 결과 */
+        .banner { display: flex; align-items: center; gap: 8px; background: #FFF4E3; color: #7A4B00; border-radius: 14px; padding: 10px 12px; font-size: 13.5px; font-weight: 700; margin-bottom: 12px; }
+        .banner svg { width: 18px; height: 18px; fill: none; stroke: #E08A00; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+        .score { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .sc { border-radius: 16px; padding: 12px 4px; text-align: center; color: #fff; font-weight: 800; }
+        .sc b { display: block; font-size: 22px; line-height: 1.2; }
+        .sc small { font-size: 11.5px; font-weight: 600; opacity: .95; }
+        .fb { margin-top: 11px; border-radius: 18px; padding: 14px 15px; font-size: 15px; line-height: 1.7; background: var(--card); white-space: pre-wrap; word-break: keep-all; }
+        .fb h4 { font-size: 13.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+        .fb h4 svg { width: 17px; height: 17px; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+        .fb.g { background: #EAF7F1; } .fb.g h4 svg { stroke: #12875f; }
+        .fb.o { background: #FFF1EA; } .fb.o h4 svg { stroke: #E0683A; }
+        .fb.p { background: #EEEEFD; } .fb.p h4 svg { stroke: #5D61D8; }
+        .fb.n h4 svg { stroke: var(--sub); }
 
-        .empty-state p { font-size: 18px; }
+        /* 리포트 / 내 정보 */
+        .pagehead { padding: 24px 20px 4px; }
+        .pagehead h2 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
+        .pagehead p { font-size: 13px; color: var(--sub); margin-top: 2px; }
+        .rcard { display: block; width: 100%; background: var(--card); border-radius: 18px; padding: 14px 15px; margin-bottom: 10px; }
+        .rcard .meta { font-size: 12px; color: var(--sub); display: flex; justify-content: space-between; }
+        .rcard b { display: block; font-size: 15.5px; margin: 2px 0; }
+        .rcard .pv { display: -webkit-box; font-size: 13.5px; color: #4a5a53; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .dots { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .dots i { font-style: normal; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 99px; background: #fff; color: #3b4a43; }
+        .empty { text-align: center; color: var(--sub); padding: 60px 20px; font-size: 14.5px; line-height: 1.7; }
+        .empty svg { margin: 0 auto 12px; }
+        .profile { margin: 16px 18px 0; background: #EAF7F1; border-radius: 22px; padding: 20px; text-align: center; }
+        .profile .av { width: 76px; height: 76px; margin: 0 auto 8px; border-radius: 50%; background: var(--sand); display: flex; align-items: center; justify-content: center; }
+        .profile b { font-size: 20px; letter-spacing: -.3px; display: block; }
+        .profile span { font-size: 12.5px; color: var(--sub); }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+        .stat { background: #fff; border-radius: 16px; padding: 12px; }
+        .stat b { font-size: 22px; } .stat span { display: block; font-size: 12px; color: var(--sub); }
+        .menu { margin: 14px 18px 0; display: flex; flex-direction: column; gap: 10px; }
 
-        /* 반응형 */
-        @media (max-width: 768px) {
-            body { overflow-y: auto; height: auto; }
-            .menu-buttons { grid-template-columns: 1fr; }
-            .reports-grid { grid-template-columns: 1fr; }
-            .header h1 { font-size: 26px; }
-            .section { flex: none; min-height: 400px; }
-            textarea { min-height: 180px; flex: none; }
-        }
+        /* 하단 탭 */
+        #tabbar { position: sticky; bottom: 0; margin-top: -68px; height: 68px; background: #fff; border-top: 1px solid var(--line); display: flex; justify-content: space-around; align-items: center; z-index: 5; }
+        #tabbar.hidden { display: none; }
+        .tab { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: #A8B4AE; gap: 3px; font-weight: 600; padding: 6px 22px; }
+        .tab .ico { width: 23px; height: 23px; }
+        .tab.on { color: var(--orange); }
+
+        /* 별명 정하기 */
+        .overlay { position: fixed; inset: 0; background: rgba(12,40,30,.55); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+        .overlay.show { display: flex; }
+        .sheetbox { background: #fff; width: 100%; max-width: 460px; border-radius: 28px 28px 0 0; padding: 22px 20px 26px; max-height: 94vh; overflow-y: auto; animation: rise .28s ease; }
+        @media (min-width: 520px) { .overlay { align-items: center; } .sheetbox { border-radius: 28px; } }
+        @keyframes rise { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+        .sheetbox h3 { font-size: 20px; font-weight: 800; letter-spacing: -.3px; }
+        .sheetbox .lead { font-size: 13px; color: var(--sub); margin-top: 2px; }
+        .preview { margin-top: 14px; background: #EAF7F1; border-radius: 22px; padding: 16px; text-align: center; }
+        .preview .av { width: 70px; height: 70px; margin: 0 auto 8px; border-radius: 50%; background: var(--sand); display: flex; align-items: center; justify-content: center; }
+        .preview b { font-size: 20px; letter-spacing: -.3px; display: block; }
+        .preview span { font-size: 12.5px; color: var(--sub); }
+        .pick { margin-top: 14px; }
+        .pick h5 { font-size: 13px; color: var(--sub); margin-bottom: 8px; font-weight: 700; }
+        .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+        .opt { padding: 9px 14px; border-radius: 999px; background: var(--card); font-size: 14px; font-weight: 700; color: #3a4a43; }
+        .opt.on { background: var(--deep); color: #fff; }
+        .skip { display: block; width: 100%; text-align: center; margin-top: 12px; font-size: 13px; color: var(--sub); text-decoration: underline; padding: 6px; }
     </style>
 </head>
 <body>
-    <!-- 헤더 -->
-    <div class="header">
-        <h1>📚 AI 문해력 논술 코칭</h1>
-        <p>재미있게 공부하며 문해력을 키워봐요!</p>
+
+<!-- 직접 그린 단순 선 아이콘 모음 (외부 이미지/이모지 없음) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+        <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v9h5v-5h4v5h5v-9"/></symbol>
+        <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 8l8 6 8-6"/></symbol>
+        <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></symbol>
+        <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+        <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3 0-6 1-9z"/></symbol>
+        <symbol id="i-medal" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M9 14l-2 7 5-3 5 3-2-7"/></symbol>
+        <symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M4 18h16"/><path d="M7 18a5 5 0 0 1 10 0"/><path d="M12 5v3M5 10l2 2M19 10l-2 2"/></symbol>
+        <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-8.5-9A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8.5 4c-1.5 4.5-8.5 9-8.5 9z"/></symbol>
+        <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 2 2.5 3 4 3s3-1 4-3"/><path d="M9 9.5h.01M15 9.5h.01"/></symbol>
+        <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19C5 10 10 5 20 4c0 10-5 15-14 15z"/><path d="M5 19c3-5 6-8 10-10"/></symbol>
+        <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5C6 4.5 9 4.5 12 6c3-1.5 6-1.5 8-.5V19c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5z"/><path d="M12 6v13.5"/></symbol>
+        <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+        <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></symbol>
+        <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.5.4.5 1 .5 1.6V16h6v-.5c0-.6 0-1.2.5-1.6A6 6 0 0 0 12 3z"/></symbol>
+        <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></symbol>
+        <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+    </defs>
+</svg>
+
+<div id="app">
+
+    <!-- 홈 -->
+    <section id="v-home" class="view active">
+        <div class="hero">
+            <div class="who">
+                <div class="avatar" id="heroAvatar"></div>
+                <div><b id="heroName">글쓰기 친구</b><span id="heroTitle">이야기 새싹 · Lv.1</span></div>
+            </div>
+            <div class="badges" id="heroBadges"></div>
+            <h2>오늘은 어떤 이야기를 읽었나요?</h2>
+            <button class="linklike" onclick="resetNick()">내 별명이 아니에요</button>
+            <svg class="art" width="118" height="112" viewBox="0 0 118 112" aria-hidden="true">
+                <circle cx="86" cy="26" r="16" fill="#F6C877" opacity=".95"/>
+                <rect x="14" y="78" width="92" height="20" rx="6" fill="#8E92F2"/>
+                <rect x="22" y="58" width="78" height="20" rx="6" fill="#FF8B5E"/>
+                <rect x="30" y="38" width="64" height="20" rx="6" fill="#67C9A0"/>
+                <rect x="22" y="84" width="40" height="3" rx="1.5" fill="#fff" opacity=".6"/>
+                <rect x="30" y="64" width="34" height="3" rx="1.5" fill="#fff" opacity=".6"/>
+                <rect x="38" y="44" width="28" height="3" rx="1.5" fill="#fff" opacity=".6"/>
+                <path d="M62 38c0-9 0-14 0-20" stroke="#BDEBD5" stroke-width="3" stroke-linecap="round" fill="none"/>
+                <path d="M62 24c-9 0-14-5-14-12 9 0 14 5 14 12z" fill="#BDEBD5"/>
+                <path d="M62 20c8 0 12-4 12-10-8 0-12 4-12 10z" fill="#67C9A0"/>
+            </svg>
+        </div>
+        <div class="sheet">
+            <h3>읽은 책 고르기</h3>
+            <div class="sub">이야기 모음을 고른 뒤 책을 골라 보세요</div>
+            <div class="chips" id="chapterGrid"><div class="empty" style="grid-column:1/-1;padding:30px 0;">책 목록을 불러오는 중...</div></div>
+        </div>
+    </section>
+
+    <!-- 책 목록 -->
+    <section id="v-books" class="view no-tab">
+        <div class="top"><button class="back" onclick="show('v-home')" aria-label="뒤로"><svg class="ico"><use href="#i-back"/></svg></button><div class="t" id="chapterTitle"></div></div>
+        <div class="steps"><span class="on"></span><span></span><span></span></div>
+        <div class="body"><div class="booklist" id="bookList"></div></div>
+    </section>
+
+    <!-- 글쓰기 -->
+    <section id="v-write" class="view no-tab">
+        <div class="top"><button class="back" onclick="backFromWrite()" aria-label="뒤로"><svg class="ico"><use href="#i-back"/></svg></button><div class="t" id="writeTitle"></div></div>
+        <div class="steps"><span class="on"></span><span class="on"></span><span></span></div>
+        <div class="body">
+            <div class="qcard">
+                <div class="bk"><svg viewBox="0 0 24 24"><use href="#i-book"/></svg>이야기 질문</div>
+                <div class="q" id="questionText"></div>
+            </div>
+            <textarea id="textInput" maxlength="1500" placeholder="읽은 이야기를 떠올리며 내 생각을 써 보세요." oninput="updateCount()"></textarea>
+            <div class="count"><span>책 문장을 그대로 옮기지 말고 내 말로 써요</span><span id="countText">0 / 1500</span></div>
+            <button class="btn" id="submitBtn" onclick="submitEssay(event)">제출하기</button>
+            <div id="result" class="msg" role="status"></div>
+            <div class="tip"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg>이름, 학교, 연락처는 쓰지 않아요. 별명만 사용해요.</div>
+        </div>
+    </section>
+
+    <!-- 결과 -->
+    <section id="v-result" class="view no-tab">
+        <div class="top"><button class="back" onclick="backFromResult()" aria-label="뒤로"><svg class="ico"><use href="#i-back"/></svg></button><div class="t" id="resultTitle">내 글 리포트</div></div>
+        <div class="steps"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+        <div class="body" id="resultBody"></div>
+    </section>
+
+    <!-- 리포트 -->
+    <section id="v-reports" class="view">
+        <div class="pagehead"><h2>내 리포트</h2><p>이 화면에서 제출한 글의 피드백이에요. 탭을 닫으면 사라져요.</p></div>
+        <div class="body" id="reportsList"></div>
+    </section>
+
+    <!-- 내 정보 -->
+    <section id="v-me" class="view">
+        <div class="pagehead"><h2>내 정보</h2><p>이 기기에만 저장돼요.</p></div>
+        <div class="profile">
+            <div class="av" id="meAvatar"></div>
+            <b id="meName"></b>
+            <span id="meTitle"></span>
+            <div class="stats">
+                <div class="stat"><b id="meStreak">0</b><span>연속 글쓰기 (일)</span></div>
+                <div class="stat"><b id="meCount">0</b><span>쓴 글 (편)</span></div>
+            </div>
+        </div>
+        <div class="menu">
+            <button class="btn ghost" onclick="openNick(true)">별명 바꾸기</button>
+            <button class="btn ghost" onclick="resetNick()">다른 친구가 쓰는 기기예요 (기록 지우기)</button>
+        </div>
+        <div class="body"><div class="tip"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg>별명과 기록은 서버로 보내지 않아요. 브라우저 기록을 지우면 함께 사라져요.</div></div>
+    </section>
+
+    <nav id="tabbar">
+        <button class="tab on" data-view="v-home" onclick="show('v-home')"><svg class="ico"><use href="#i-home"/></svg>홈</button>
+        <button class="tab" data-view="v-reports" onclick="show('v-reports')"><svg class="ico"><use href="#i-mail"/></svg>리포트</button>
+        <button class="tab" data-view="v-me" onclick="show('v-me')"><svg class="ico"><use href="#i-user"/></svg>내 정보</button>
+    </nav>
+</div>
+
+<!-- 별명 정하기 -->
+<div class="overlay" id="nickOverlay">
+    <div class="sheetbox">
+        <h3>나만의 글쓰기 별명을 만들어요</h3>
+        <p class="lead">이름 대신 별명을 써요. 한 번만 정하면 돼요.</p>
+        <div class="preview">
+            <div class="av" id="nickAvatar"></div>
+            <b id="nickPreview">용감한 호랑이</b>
+            <span>이야기 새싹 · Lv.1</span>
+        </div>
+        <div class="pick"><h5>어떤 모습인가요?</h5><div class="opts" id="adjOpts"></div></div>
+        <div class="pick"><h5>어떤 친구인가요?</h5><div class="opts" id="aniOpts"></div></div>
+        <button class="btn" onclick="saveNick()">이 별명으로 시작하기</button>
+        <button class="skip" id="skipBtn" onclick="skipNick()">나중에 할게요</button>
     </div>
+</div>
 
-    <!-- 메인 컨테이너 -->
-    <div class="container">
-        <!-- 메뉴 버튼 -->
-        <div class="menu-buttons">
-            <div class="menu-btn" onclick="showWritingSection()">
-                <div class="icon">📝</div>
-                <div class="menu-text">
-                    <div class="title">글쓰기</div>
-                    <div class="desc">새로운 글을 작성해보세요</div>
-                </div>
-            </div>
-            <div class="menu-btn" onclick="showReportsSection()">
-                <div class="icon">💌</div>
-                <div class="menu-text">
-                    <div class="title">리포트</div>
-                    <div class="desc">방금 제출한 글의 피드백을 확인하세요</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 글쓰기 섹션 -->
-        <div id="writingSection" class="section">
-            <h2>✏️ 글쓰기</h2>
-            <div class="input-area">
-                <div class="book-picker">
-                    <label for="bookSelect">📖 읽은 책을 골라 보세요</label>
-                    <select id="bookSelect" onchange="showQuestion()">
-                        <option value="">책을 불러오는 중...</option>
-                    </select>
-                </div>
-                <div id="questionBox" class="question-box"></div>
-                <textarea id="textInput" maxlength="1500" placeholder="지문을 읽고 느낀 점을 작성해주세요... (최대 1500자)"></textarea>
-                <button class="submit-btn" onclick="submitEssay(event)">제출하기</button>
-                <p class="write-notice">책 문장을 그대로 옮기지 말고, 읽은 내용을 내 말로 설명해 보세요. 이름, 학교, 연락처 같은 개인정보는 쓰지 마세요.</p>
-                <div id="result" class="result"></div>
-            </div>
-        </div>
-
-        <!-- 리포트 섹션 -->
-        <div id="reportsSection" class="section">
-            <h2>💌 리포트</h2>
-            <div id="reportsList" class="reports-grid">
-                <div class="loading">리포트를 불러오는 중...</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 리포트 상세 모달 -->
-    <div id="reportModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📊 리포트 상세</h3>
-                <button class="modal-close" onclick="closeReportModal()">×</button>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <!-- 동적으로 채워짐 -->
-            </div>
-        </div>
-    </div>
-
-    <!-- API_BASE를 script.js보다 먼저 주입 (중복 const 선언 오류 방지) -->
-    <script>
-        window.API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : '';
-    </script>
-    <script src="script.js"></script>
-    <script>
-        // 책 목록(제목과 질문만, 책 본문 없음)을 서버에서 받아 선택 상자를 채웁니다.
-        window.booksById = {};
-        async function loadBooks() {
-            const select = document.getElementById('bookSelect');
-            try {
-                const response = await fetch(`${window.API_BASE}/api/books`);
-                if (!response.ok) throw new Error('책 목록을 불러오지 못했습니다.');
-                const data = await response.json();
-                const books = data.books || [];
-                select.innerHTML = '<option value="">책을 골라 주세요</option>';
-                const groups = {};
-                books.forEach(book => {
-                    window.booksById[book.id] = book;
-                    if (!groups[book.chapter]) {
-                        const group = document.createElement('optgroup');
-                        group.label = book.chapter;
-                        groups[book.chapter] = group;
-                        select.appendChild(group);
-                    }
-                    const option = document.createElement('option');
-                    option.value = book.id;
-                    option.textContent = book.title;
-                    groups[book.chapter].appendChild(option);
-                });
-            } catch (e) {
-                select.innerHTML = '<option value="">책 목록을 불러오지 못했어요. 새로고침 해 주세요.</option>';
-            }
-        }
-
-        function showQuestion() {
-            const box = document.getElementById('questionBox');
-            const book = window.booksById[document.getElementById('bookSelect').value];
-            if (book) {
-                box.textContent = '✍️ ' + book.question;
-                box.classList.add('show');
-            } else {
-                box.textContent = '';
-                box.classList.remove('show');
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', loadBooks);
-
-        // 섹션 전환
-        function showWritingSection() {
-            document.getElementById('writingSection').classList.add('active');
-            document.getElementById('reportsSection').classList.remove('active');
-        }
-
-        function showReportsSection() {
-            document.getElementById('writingSection').classList.remove('active');
-            document.getElementById('reportsSection').classList.add('active');
-            loadReports();
-        }
-
-        // 리포트 불러오기
-        async function loadReports() {
-            const reportsList = document.getElementById('reportsList');
-            reportsList.innerHTML = '<div class="loading">리포트를 불러오는 중...</div>';
-
-            try {
-                // 개인정보 보호: 서버의 전체 목록을 받지 않고, 이 브라우저에서 방금 제출한 결과만 보여줍니다.
-                // (탭을 닫으면 사라지는 sessionStorage 사용)
-                let allEssays = [];
-                try {
-                    allEssays = JSON.parse(sessionStorage.getItem('myEssayResults') || '[]');
-                } catch (e) {
-                    allEssays = [];
-                }
-                const completedEssays = allEssays.slice();
-
-                // 최신순 정렬: submitted_at → created_at 기준 내림차순
-                completedEssays.sort((a, b) => {
-                    const dateA = new Date(a.student_essay?.submitted_at || a.metadata?.created_at || 0);
-                    const dateB = new Date(b.student_essay?.submitted_at || b.metadata?.created_at || 0);
-                    return dateB - dateA;
-                });
-
-                if (completedEssays.length === 0) {
-                    reportsList.innerHTML = `
-                        <div class="empty-state" style="grid-column: 1 / -1;">
-                            <div class="icon">📭</div>
-                            <p>아직 제출한 글이 없어요. 글을 쓰고 제출하면 여기에 피드백이 나타나요.</p>
-                        </div>
-                    `;
-                } else {
-                    window.reportsData = completedEssays;
-                    reportsList.innerHTML = completedEssays.map((essay, index) => {
-                        const studentAnswer = essay.student_essay?.student_answer || '';
-                        const teacherFeedback = essay.teacher_correction?.teacher_final_feedback || essay.ai_feedback?.ai_draft_feedback || '피드백 없음';
-                        const scores = essay.evaluation?.dimensions || {};
-                        const submittedAt = essay.student_essay?.submitted_at || essay.metadata?.created_at || '';
-                        const dateStr = submittedAt ? new Date(submittedAt).toLocaleDateString('ko-KR') : '날짜 없음';
-
-                        return `
-                            <div class="report-card" onclick="openReportModal(${index})">
-                                <div class="date">${dateStr}${essay.lesson_context?.book_title ? ' · ' + escapeHtml(essay.lesson_context.book_title) : ''}</div>
-                                <div class="preview">${escapeHtml(studentAnswer.substring(0, 100))}${studentAnswer.length > 100 ? '...' : ''}</div>
-                                <div class="scores-preview">
-                                    <div class="score-chip-small">어휘 ${scores.vocabulary?.value || 0}/5</div>
-                                    <div class="score-chip-small">문법 ${scores.grammar?.value || 0}/5</div>
-                                    <div class="score-chip-small">논리 ${scores.logic?.value || 0}/5</div>
-                                    <div class="score-chip-small">공감도 ${scores.empathy?.value || 0}/5</div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            } catch (error) {
-                reportsList.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1 / -1;">
-                        <div class="icon">⚠️</div>
-                        <p>오류가 발생했습니다: ${error.message}</p>
-                    </div>
-                `;
-                console.error('리포트 로드 오류:', error);
-            }
-        }
-
-        // 리포트 상세 모달 열기
-        function openReportModal(index) {
-            if (!window.reportsData || !window.reportsData[index]) {
-                alert('리포트를 불러올 수 없습니다.');
-                return;
-            }
-
-            const essay = window.reportsData[index];
-            const teacherFeedback = essay.teacher_correction?.teacher_final_feedback || essay.ai_feedback?.ai_draft_feedback || '피드백 없음';
-            const scores = essay.evaluation?.dimensions || {};
-            const submittedAt = essay.student_essay?.submitted_at || essay.metadata?.created_at || '';
-            const dateStr = submittedAt ? new Date(submittedAt).toLocaleString('ko-KR') : '날짜 없음';
-
-            const revisedText = essay.ai_feedback?.revised_text || '';
-            const lessonFeedback = essay.lesson_feedback || '';
-            const avgScore = ((scores.vocabulary?.value || 0) + (scores.grammar?.value || 0) + 
-                             (scores.logic?.value || 0) + (scores.empathy?.value || 0)) / 4;
-            
-            const modalBody = document.getElementById('modalBody');
-            modalBody.innerHTML = `
-                <div class="report-tabs">
-                    <button class="tab-btn active" onclick="switchTab('student')">👤 학생용 리포트</button>
-                    <button class="tab-btn" onclick="switchTab('parent')">👨‍👩‍👧 학부모용 리포트</button>
-                </div>
-
-                <!-- 학생용 리포트 -->
-                <div id="studentTab" class="tab-content active">
-                    <div class="card-news">
-                        <div class="news-card">
-                            <h5>💬 AI 선생님의 글 첨삭</h5>
-                            <div class="content">${escapeHtml(teacherFeedback)}</div>
-                        </div>
-
-                        ${revisedText ? `
-                        <div class="news-card revised-text-card">
-                            <h5>✨ AI가 다듬은 문장</h5>
-                            <div class="content">${escapeHtml(revisedText)}</div>
-                        </div>
-                        ` : ''}
-
-                        <div class="news-card">
-                            <h5>📊 문해력 점수</h5>
-                            <div class="charts-section" style="margin-top: 0;">
-                                <div class="chart-container">
-                                    <div class="bar-chart">
-                                        <div class="bar-label">어휘</div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-fill" style="width: ${(scores.vocabulary?.value || 0) * 20}%">
-                                                ${scores.vocabulary?.value || 0}/5
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="chart-container">
-                                    <div class="bar-chart">
-                                        <div class="bar-label">문법</div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-fill" style="width: ${(scores.grammar?.value || 0) * 20}%">
-                                                ${scores.grammar?.value || 0}/5
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="chart-container">
-                                    <div class="bar-chart">
-                                        <div class="bar-label">논리</div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-fill" style="width: ${(scores.logic?.value || 0) * 20}%">
-                                                ${scores.logic?.value || 0}/5
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="chart-container">
-                                    <div class="bar-chart">
-                                        <div class="bar-label">공감도</div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-fill" style="width: ${(scores.empathy?.value || 0) * 20}%">
-                                                ${scores.empathy?.value || 0}/5
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 학부모용 리포트 -->
-                <div id="parentTab" class="tab-content">
-                    <div class="card-news">
-                        <div class="news-card">
-                            <h5>💬 AI 선생님의 글 첨삭</h5>
-                            <div class="content">${escapeHtml(teacherFeedback)}</div>
-                        </div>
-
-                        ${lessonFeedback ? `
-                        <div class="news-card">
-                            <h5>🎓 수업 참여 피드백</h5>
-                            <div class="content">${escapeHtml(lessonFeedback)}</div>
-                        </div>
-                        ` : ''}
-
-                        ${revisedText ? `
-                        <div class="news-card revised-text-card">
-                            <h5>✨ AI가 다듬은 문장</h5>
-                            <div class="content">${escapeHtml(revisedText)}</div>
-                        </div>
-                        ` : ''}
-
-                        <div class="news-card">
-                            <h5>📊 문해력 점수</h5>
-                            <div class="charts-section" style="margin-top: 0;">
-                                <div class="chart-container">
-                                    <div class="bar-chart">
-                                        <div class="bar-label">어휘</div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-fill" style="width: ${(scores.vocabulary?.value || 0) * 20}%">
-                                                ${scores.vocabulary?.value || 0}/5
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="chart-container">
-                                    <div class="bar-chart">
-                                        <div class="bar-label">문법</div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-fill" style="width: ${(scores.grammar?.value || 0) * 20}%">
-                                                ${scores.grammar?.value || 0}/5
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="chart-container">
-                                    <div class="bar-chart">
-                                        <div class="bar-label">논리</div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-fill" style="width: ${(scores.logic?.value || 0) * 20}%">
-                                                ${scores.logic?.value || 0}/5
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="chart-container">
-                                    <div class="bar-chart">
-                                        <div class="bar-label">공감도</div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-fill" style="width: ${(scores.empathy?.value || 0) * 20}%">
-                                                ${scores.empathy?.value || 0}/5
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="overall-chart">
-                            <h5>📈 종합 성취도</h5>
-                            <div class="radar-chart">
-                                <div class="radar-container">
-                                    <div class="radar-bg"></div>
-                                    <div class="radar-score">${avgScore.toFixed(1)}</div>
-                                </div>
-                            </div>
-                            <div style="text-align: center; color: #5D4037; font-size: 14px; margin-top: 12px;">
-                                평균 점수: ${avgScore.toFixed(1)} / 5.0
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="text-align: center; color: #8D6E63; font-size: 14px; margin-top: 24px;">
-                    제출일: ${dateStr}
-                </div>
-            `;
-
-            document.getElementById('reportModal').classList.add('active');
-
-            // 차트 애니메이션
-            setTimeout(() => {
-                document.querySelectorAll('.bar-fill').forEach(bar => {
-                    const width = bar.style.width;
-                    bar.style.width = '0%';
-                    setTimeout(() => {
-                        bar.style.width = width;
-                    }, 100);
-                });
-            }, 100);
-        }
-
-        // 리포트 모달 닫기
-        function closeReportModal() {
-            document.getElementById('reportModal').classList.remove('active');
-        }
-
-        // HTML 이스케이프
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // 탭 전환
-        function switchTab(tabType) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            if (tabType === 'student') {
-                document.querySelector('.tab-btn[onclick="switchTab(\'student\')"]').classList.add('active');
-                document.getElementById('studentTab').classList.add('active');
-            } else {
-                document.querySelector('.tab-btn[onclick="switchTab(\'parent\')"]').classList.add('active');
-                document.getElementById('parentTab').classList.add('active');
-            }
-        }
-
-        // 모달 배경 클릭 시 닫기
-        document.addEventListener('DOMContentLoaded', () => {
-            const modal = document.getElementById('reportModal');
-            if (modal) {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        closeReportModal();
-                    }
-                });
-            }
-
-            // ESC 키로 모달 닫기
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    closeReportModal();
-                }
-            });
-        });
-    </script>
+<!-- API_BASE를 script.js보다 먼저 주입 -->
+<script>
+    window.API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+        ? 'http://127.0.0.1:5000'
+        : '';
+</script>
+<script src="script.js"></script>
 </body>
 </html>
