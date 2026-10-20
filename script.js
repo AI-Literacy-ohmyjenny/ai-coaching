@@ -9,6 +9,15 @@ async function submitEssay(event) {
     const button = event.currentTarget;
     
     const text = textInput.value.trim();
+    const bookSelect = document.getElementById('bookSelect');
+    const bookId = bookSelect ? bookSelect.value : '';
+
+    // 책 선택 확인
+    if (!bookId) {
+        resultDiv.textContent = '읽은 책을 먼저 골라 주세요.';
+        resultDiv.style.color = '#FF6B35';
+        return;
+    }
     
     // 입력값 확인
     if (!text) {
@@ -31,7 +40,7 @@ async function submitEssay(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ text })
+            body: JSON.stringify({ text, book_id: Number(bookId) })
         });
 
         if (!response.ok) {
