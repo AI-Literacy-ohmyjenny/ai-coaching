@@ -371,6 +371,7 @@ function renderResult(essay, progress) {
     } else {
         html += fbCard('g', 'i-star', 'AI 선생님의 피드백', essay.ai_feedback && essay.ai_feedback.ai_draft_feedback);
     }
+    html += fbCard('o', 'i-lock', '개인정보 알림', essay.ai_feedback && essay.ai_feedback.privacy_note);
     html += fbCard('n', 'i-sparkle', 'AI가 다듬은 문장', essay.ai_feedback && essay.ai_feedback.revised_text);
     html += fbCard('n', 'i-doc', '내가 쓴 글', essay.student_essay && essay.student_essay.student_answer);
     html += `<button class="btn" onclick="show('v-home')">다른 책 쓰기</button>`;
