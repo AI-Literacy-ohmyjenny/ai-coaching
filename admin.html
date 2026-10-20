@@ -825,7 +825,7 @@
                                     <div style="flex: 1; cursor: pointer;" onclick="openReviewModal(${index})">
                                         ${statusBadge}
                                         <div class="student-info">
-                                            <div class="student-name">학생 글 #${index + 1}${newBadge}</div>
+                                            <div class="student-name">학생 글 #${index + 1}${newBadge}${essay.lesson_context?.book?.title ? ` <span style="font-size:13px; color:#5D4037; font-weight:600;">📖 ${escapeHtml(essay.lesson_context.book.title)}</span>` : ''}</div>
                                             <div class="date">${dateStr}</div>
                                         </div>
                                     </div>
