@@ -647,10 +647,11 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
         "출력은 반드시 아래 JSON 형식의 한 개 객체로만 답하세요. "
         "절대 마크다운 코드블록(```json)으로 감싸지 마세요.\n"
         "{\n"
-        '  \"feedback\": \"3단 구성 피드백 (각 문단 최소 2문장, 전체 6문장 이상):\\n'
-        '    ① 따뜻한 공감과 격려 (2문장 이상)\\n'
-        '    ② 성취기준 기반의 구체적인 어휘/문법 조언 (2문장 이상)\\n'
-        '    ③ 아이의 생각을 넓혀주는 심화 질문 (2문장 이상)\",\n'
+        '  \"feedback_sections\": {\n'
+        '    \"praise\": \"① 따뜻한 공감과 격려, 잘한 점 (2문장 이상, 초등학생이 이해하기 쉬운 말)\",\n'
+        '    \"improve\": \"② 성취기준 기반의 구체적인 어휘/문법/표현 조언 (2문장 이상)\",\n'
+        '    \"question\": \"③ 아이의 생각을 넓혀주는 심화 질문 (1~2개)\"\n'
+        '  },\n'
         '  \"achievement_explanation\": \"성취기준 [6국01-07]을 인용하며 왜 이런 피드백이 나왔는지 교사가 납득할 수 있는 상세한 근거 설명\",\n'
         '  \"revised_text\": \"학생 원문을 더 매끄럽고 수준 높게 다듬은 AI 추천 수정본 (전체 텍스트)\",\n'
         '  \"scores\": {\n'
@@ -667,7 +668,7 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
         f"지문 설명: {text_description}\n\n"
         f"학생 글:\n\"\"\"\n{student_text}\n\"\"\"\n\n"
         "요구사항:\n"
-        "1. feedback은 반드시 3단 구성으로 작성 (각 문단 최소 2문장, 전체 6문장 이상)\n"
+        "1. feedback_sections의 praise, improve, question을 모두 채울 것 (초등학생이 읽을 말투로 따뜻하게)\n"
         "2. achievement_explanation은 성취기준을 명시적으로 인용하며 상세히 설명\n"
         "3. revised_text는 학생 원문의 의미를 유지하면서 더 매끄럽고 수준 높게 다듬은 전체 텍스트\n"
         "4. 반드시 순수 JSON만 출력할 것. ```json 코드블록 사용 금지.\n"
@@ -703,11 +704,17 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
         err.usage = usage
         raise err from e
 
+    sections_raw = parsed.get("feedback_sections") or {}
+    if not isinstance(sections_raw, dict):
+        sections_raw = {}
+    sections = {k: str(sections_raw.get(k, "")).strip() for k in ("praise", "improve", "question")}
     feedback_text = str(parsed.get("feedback", "")).strip()
+    if any(sections.values()):
+        feedback_text = "\n\n".join(v for v in sections.values() if v)
     achievement_explanation = str(parsed.get("achievement_explanation", "")).strip()
     revised_text = str(parsed.get("revised_text", "")).strip()
     scores = parsed.get("scores", {}) or {}
-    return feedback_text, achievement_explanation, revised_text, scores, usage
+    return feedback_text, achievement_explanation, revised_text, scores, usage, sections
 
 
 def _score(scores: dict, key: str, default: int) -> int:
@@ -727,6 +734,7 @@ def build_schema(
     achievement_2015: str,
     text_description: str,
     book: dict = None,
+    sections: dict = None,
 ):
     now_iso = datetime.utcnow().isoformat() + "Z"
     process_id = f"proc_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
@@ -773,6 +781,7 @@ def build_schema(
             "created_at": now_iso,
             "prompt_template_id": "empathetic_feedback_v3",
             "ai_draft_feedback": feedback_text,
+            "feedback_sections": sections or {},
             "ai_feedback_type": "3단 구성 공감적 피드백",
             "ai_feedback_tags": ["공감", "경청", "존중", "긍정 강화", "성취기준 기반 조언", "심화 질문"],
             "achievement_explanation": achievement_explanation,
@@ -798,6 +807,7 @@ def _student_view(schema: dict) -> dict:
         "evaluation": schema["evaluation"],
         "ai_feedback": {
             "ai_draft_feedback": schema["ai_feedback"]["ai_draft_feedback"],
+            "feedback_sections": schema["ai_feedback"].get("feedback_sections", {}),
             "revised_text": schema["ai_feedback"]["revised_text"],
         },
     }
@@ -1063,7 +1073,7 @@ def submit():
             "책의 원문 표현을 재현하지 말고, 학생의 생각·근거·문장 표현을 중심으로 지도하세요."
         )
         try:
-            feedback_text, achievement_explanation, revised_text, scores, usage = call_openai_for_feedback(
+            feedback_text, achievement_explanation, revised_text, scores, usage, sections = call_openai_for_feedback(
                 student_text=text,
                 achievement_2015=achievement_2015,
                 text_description=text_description,
@@ -1084,6 +1094,7 @@ def submit():
             achievement_2015=achievement_2015,
             text_description=text_description,
             book=book,
+            sections=sections,
         )
         schema["process"]["process_id"] = process_id
         _append_essay_safe(schema)
