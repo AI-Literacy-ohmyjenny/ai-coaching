@@ -666,14 +666,19 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
         "- 글이 책과 상관없거나, 줄거리만 적었거나, 너무 짧아도 혼내지 말고 질문에 맞게 다시 써 볼 방법을 친절하게 알려 주세요. 점수는 솔직하게 주되 말은 따뜻하게 하세요.\n"
         "- 책에 없는 내용을 사실처럼 말하지 마세요. 판본마다 다를 수 있는 세부 내용은 단정하지 마세요.\n"
         "- 학생 글에 이름, 학교, 연락처 같은 개인정보가 있어도 따라 쓰거나 반복하지 말고, 개인정보는 쓰지 않는 게 좋다고 짧게 알려 주세요.\n"
+        "- 칭찬은 사실일 때만 하세요. 글이 짧거나 질문과 관계없으면 억지로 내용을 칭찬하지 말고, 솔직하게 쓴 점이나 질문에 답하려고 한 노력처럼 실제로 있는 점을 칭찬하세요.\n"
+        "- improve의 예시 문장은 정답을 대신 써 주지 말고 '나는 ___라고 생각해요. 왜냐하면 ___ 때문이에요.'처럼 빈칸이 있는 틀로 보여 주세요.\n"
+        "- 어휘 점수와 문법 점수는 글의 낱말과 문장만 보고 주세요. 질문과 관계가 있는지, 이유가 있는지는 논리 점수에만 반영하세요.\n"
+        "- privacy_flag: 학생 글에 실명, 학교 이름, 학년·반, 전화번호, 주소, 이메일 같은 개인정보가 있으면 true, 없으면 false로 쓰세요.\n"
         "- 점수 기준: 1점 매우 부족, 2점 부족, 3점 보통(5학년 평균), 4점 좋음, 5점 매우 훌륭함. 5점은 드물게 주고, 글이 너무 짧거나 질문과 관계없으면 논리 점수는 1~2점을 주세요.\n\n"
         "{\n"
         '  \"feedback_sections\": {\n'
-        '    \"praise\": \"① 따뜻한 공감과 격려, 잘한 점 (2문장 이상, 초등학생이 이해하기 쉬운 말)\",\n'
-        '    \"improve\": \"② 성취기준 기반의 구체적인 어휘/문법/표현 조언 (2문장 이상)\",\n'
-        '    \"question\": \"③ 아이의 생각을 넓혀주는 심화 질문 (1~2개)\"\n'
+        '    \"praise\": \"따뜻한 공감과 격려, 글에서 실제로 잘한 점 (2문장 이상, 초등학생이 이해하기 쉬운 말)\",\n'
+        '    \"improve\": \"성취기준 기반의 구체적인 어휘/문법/표현 조언 (2문장 이상)\",\n'
+        '    \"question\": \"아이의 생각을 넓혀주는 심화 질문 (1~2개)\"\n'
         '  },\n'
         '  \"achievement_explanation\": \"성취기준 [6국01-07]을 인용하며 왜 이런 피드백이 나왔는지 교사가 납득할 수 있는 상세한 근거 설명\",\n'
+        '  \"privacy_flag\": true 또는 false,\n'
         '  \"revised_text\": \"학생의 생각과 말투를 살려 맞춤법과 문장만 가볍게 다듬은 글. 새로운 내용이나 생각을 덧붙이지 말고, 개인정보는 빼세요.\",\n'
         '  \"scores\": {\n'
         '    \"vocabulary\": 1-5 정수,\n'
@@ -732,10 +737,11 @@ def call_openai_for_feedback(student_text: str, achievement_2015: str, text_desc
     feedback_text = str(parsed.get("feedback", "")).strip()
     if any(sections.values()):
         feedback_text = "\n\n".join(v for v in sections.values() if v)
+    privacy_flag = parsed.get("privacy_flag") is True
     achievement_explanation = str(parsed.get("achievement_explanation", "")).strip()
     revised_text = str(parsed.get("revised_text", "")).strip()
     scores = parsed.get("scores", {}) or {}
-    return feedback_text, achievement_explanation, revised_text, scores, usage, sections
+    return feedback_text, achievement_explanation, revised_text, scores, usage, sections, privacy_flag
 
 
 def _score(scores: dict, key: str, default: int) -> int:
@@ -829,6 +835,7 @@ def _student_view(schema: dict) -> dict:
         "ai_feedback": {
             "ai_draft_feedback": schema["ai_feedback"]["ai_draft_feedback"],
             "feedback_sections": schema["ai_feedback"].get("feedback_sections", {}),
+            "privacy_note": ("글에 이름이나 학교 같은 개인정보가 보여요. 다음부터는 쓰지 않아요." if schema["ai_feedback"].get("privacy_flag") else ""),
             "revised_text": schema["ai_feedback"]["revised_text"],
         },
     }
@@ -1097,7 +1104,7 @@ def submit():
             "책의 원문 표현을 재현하지 말고, 학생의 생각·근거·문장 표현을 중심으로 지도하세요."
         )
         try:
-            feedback_text, achievement_explanation, revised_text, scores, usage, sections = call_openai_for_feedback(
+            feedback_text, achievement_explanation, revised_text, scores, usage, sections, privacy_flag = call_openai_for_feedback(
                 student_text=text,
                 achievement_2015=achievement_2015,
                 text_description=text_description,
@@ -1108,6 +1115,9 @@ def submit():
                 _usage_finalize(ref, int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)))
             raise
         _usage_finalize(ref, int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)))
+
+        if privacy_flag:
+            revised_text = ""  # 개인정보가 들어 있을 수 있는 수정문은 학생에게 돌려주지 않습니다.
 
         schema = build_schema(
             student_text=text,
@@ -1120,6 +1130,7 @@ def submit():
             book=book,
             sections=sections,
         )
+        schema["ai_feedback"]["privacy_flag"] = privacy_flag
         schema["process"]["process_id"] = process_id
         _append_essay_safe(schema)
 
